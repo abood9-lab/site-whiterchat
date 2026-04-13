@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="html-tag">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Whiterchat | Home</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00ff88">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="icon" href="logo.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { 
+            --neon: #00ff88; 
+            --bg: #01080b; 
+            --glass: rgba(15, 30, 35, 0.9); 
+            --border: rgba(0, 255, 136, 0.2); 
+            --sidebar-width: 280px; 
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: white; font-family: -apple-system, system-ui, sans-serif; margin: 0; display: flex; min-height: 100vh; overflow-x: hidden; }
+
+        .mobile-header { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: rgba(1, 8, 11, 0.9); backdrop-filter: blur(15px); border-bottom: 1px solid var(--border); justify-content: space-between; align-items: center; padding: 0 20px; z-index: 2500; }
+        .nav-container { position: fixed; background: var(--glass); backdrop-filter: blur(20px); border: 1px solid var(--border); z-index: 2000; }
+
+        @media (max-width: 768px) {
+            .mobile-header { display: flex; }
+            .nav-container { 
+                bottom: 0; left: 0; width: 100%; height: calc(65px + var(--safe-bottom)); 
+                display: flex; justify-content: space-around; align-items: flex-start; 
+                padding-top: 10px; border-radius: 0; border: none; border-top: 1px solid var(--border);
+                padding-bottom: var(--safe-bottom);
+            }
+            .nav-text, .sidebar-logo, .extra-nav-item { display: none; }
+            .nav-item { color: white; font-size: 22px; text-decoration: none; transition: 0.2s; }
+            .nav-item.active { color: var(--neon); }
+            .main-content { margin-top: 70px; width: 100%; padding: 10px; padding-bottom: calc(100px + var(--safe-bottom)); }
+        }
+
+        @media (min-width: 769px) {
+            .nav-container { top: 0; left: 0; height: 100vh; width: var(--sidebar-width); display: flex; flex-direction: column; padding: 30px 20px; gap: 5px; border-right: 1px solid var(--border); }
+            .nav-item { display: flex; align-items: center; gap: 15px; padding: 12px 20px; border-radius: 15px; color: rgba(255,255,255,0.6); text-decoration: none; transition: 0.3s; }
+            .nav-item.active, .nav-item:hover { background: rgba(0, 255, 136, 0.1); color: var(--neon); }
+            .main-content { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); padding: 40px; display: flex; flex-direction: column; align-items: center; }
+            .sidebar-logo { font-size: 30px; font-weight: 900; color: var(--neon); margin-bottom: 40px; font-style: italic; }
+        }
+
+        .feed-wrapper { width: 100%; max-width: 500px; }
+        .post-card { background: var(--glass); border-radius: 30px; border: 1px solid var(--border); padding: 15px; margin-bottom: 20px; position: relative; }
+        .user-link { display: flex; align-items: center; gap: 10px; text-decoration: none; color: white; }
+        .media-container { position: relative; width: 100%; border-radius: 20px; margin: 10px 0; overflow: hidden; background: #050a0c; }
+        .image-slider { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+        .image-slider::-webkit-scrollbar { display: none; }
+        .post-img { min-width: 100%; aspect-ratio: 1/1; object-fit: cover; scroll-snap-align: start; }
+        .img-counter { position: absolute; top: 12px; left: 12px; background: rgba(0, 0, 0, 0.6); color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; backdrop-filter: blur(5px); z-index: 5; pointer-events: none; }
+        .post-text-only { padding: 30px 15px; font-size: 18px; text-align: center; border-radius: 20px; background: linear-gradient(145deg, rgba(0,255,136,0.05), rgba(0,0,0,0.2)); border: 1px solid var(--border); margin: 10px 0; }
+        
+        #comment-sheet, #share-sheet { position: fixed; bottom: -100%; left: 0; width: 100%; height: 85vh; background: #050a0c; border-radius: 30px 30px 0 0; z-index: 3000; transition: 0.5s; padding: 20px; border-top: 2px solid var(--neon); display: flex; flex-direction: column; padding-bottom: calc(20px + var(--safe-bottom)); }
+        #comment-sheet.active, #share-sheet.active { bottom: 0; }
+        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: none; z-index: 2900; }
+        .overlay.active { display: block; }
+        
+        .comment-box { background: rgba(255,255,255,0.05); padding: 12px; border-radius: 15px; margin-bottom: 12px; }
+        .is-reply { margin-left: 35px; border-left: 2px solid var(--neon); }
+        .admin-badge { background: #ff4757; color: white; font-size: 10px; padding: 2px 6px; border-radius: 5px; margin-left: 5px; font-weight: bold; }
+        
+        #load-sentinel { height: 80px; display: flex; justify-content: center; align-items: center; color: var(--neon); font-size: 14px; width: 100%; }
+    </style>
+</head>
+<body>
+    <div class="overlay" id="overlay" onclick="closeAll()"></div>
+    <header class="mobile-header">
+        <div style="font-size: 22px; font-weight: 900; color: var(--neon); font-style: italic;">Whiterchat</div>
+        <div style="display: flex; gap: 20px;">
+            <a href='/notifications' style='color:white;'><i class="fa-regular fa-bell"></i></a>
+                </div>
+    </header>
+
+    <nav class="nav-container">
+        <div class="sidebar-logo">Whiterchat</div>
+        <a class='nav-item active' href='/feed'><i class="fa-solid fa-house"></i> <span class="nav-text">Home</span></a>
+        <a class='nav-item' href='/search'><i class="fa-solid fa-magnifying-glass"></i> <span class="nav-text">Search</span></a>
+        <a class='nav-item' href='/reels'><i class="fa-solid fa-clapperboard"></i> <span class="nav-text">Reels</span></a>
+
+<a class='nav-item' href='/messages'><i class="fa-solid fa-envelope"></i> <span class="nav-text">Messages</span></a>
+        <a class='nav-item' href='/create-post'><i class="fa-solid fa-square-plus"></i> <span class="nav-text">Create</span></a>
+        <a class='nav-item extra-nav-item' href='/notifications'><i class="fa-solid fa-bell"></i> <span class="nav-text">Notifications</span></a>
+        <a class='nav-item' href='/profile'><i class="fa-solid fa-user"></i> <span class="nav-text">Profile</span></a>
+    </nav>
+
+    <main class="main-content">
+        <div class="feed-wrapper">
+            <div style="display: flex; gap: 15px; overflow-x: auto; padding-bottom: 20px; scrollbar-width: none;" id="stories-list">
+                <div onclick="location.href='upload-story.html'" style="min-width: 70px; text-align: center; cursor: pointer;">
+                    <div style="width: 65px; height: 65px; border-radius: 50%; background: #222; display: flex; align-items: center; justify-content: center; border: 2px dashed var(--neon);"><i class="fa-solid fa-plus" style="color: var(--neon);"></i></div>
+                    <span style="font-size: 11px;">Your Story</span>
+                </div>
+            </div>
+            <div id="posts-container"></div>
+            <div id="load-sentinel">Loading posts...</div>
+        </div>
+    </main>
+
+    <div id="comment-sheet">
+        <div style="width: 40px; height: 4px; background: #333; margin: 0 auto 15px; border-radius: 10px;" onclick="closeAll()"></div>
+        <div id="comments-render" style="flex: 1; overflow-y: auto;"></div>
+        <div id="reply-indicator" style="display:none; padding: 10px; background: rgba(0,255,136,0.1); color: var(--neon); border-radius: 10px; margin-bottom: 5px;">
+            Replying to <span id="reply-user"></span> <i class="fa-solid fa-xmark" style="float:right;" onclick="cancelReply()"></i>
+        </div>
+        <div style="display: flex; gap: 10px; padding-top: 10px;">
+            <input type="text" id="comment-input" placeholder="Add a comment..." style="flex: 1; background: #111; border: 1px solid var(--border); border-radius: 15px; color: white; padding: 12px; outline: none;">
+            <button onclick="sendComment()" style="background: var(--neon); border: none; border-radius: 15px; padding: 10px 15px;"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <div id="share-sheet">
+        <div style="width: 40px; height: 4px; background: #333; margin: 0 auto 15px; border-radius: 10px;" onclick="closeAll()"></div>
+        <h3 style="text-align:center;">Send to</h3>
+        <div id="share-list" style="flex: 1; overflow-y: auto;"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, addDoc, serverTimestamp, getDoc, getDocs, deleteDoc, where, limit, startAfter } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyBkjn1uIjzvmC4suZdA8bfYNO_fx5Hnj0s", authDomain: "comments-5e3b5.firebaseapp.com", projectId: "comments-5e3b5", storageBucket: "comments-5e3b5.firebasestorage.app", messagingSenderId: "907122259758", appId: "1:907122259758:web:7819cab50ebd74dd912cbf" };
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        const ADMIN_UIDS = ["2UHMnft6wiOrq33P7DEyD0ViioQ2", "EOM6zBVb17euGJAHM4jYFDSXQt52", "YkIWutRh9GbgQTqOHLKEBgyDXue2", "cuCuQxaFhYdgwBRpKCjCQ2Hgsi33"];
+        let lastVisible = null, isFetching = false, isAdmin = false, activePostId = null, replyToId = null, currentUserFollowing = [];
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                isAdmin = ADMIN_UIDS.includes(user.uid);
+                const uSnap = await getDoc(doc(db, "users", user.uid));
+                currentUserFollowing = uSnap.data()?.following || [];
+                loadPosts(true);
+                loadStories();
+                initInfiniteScroll();
+            } else { window.location.href = "login.html"; }
+        });
+
+        async function loadPosts(isInitial = false) {
+            if (isFetching) return;
+            isFetching = true;
+            let q = query(collection(db, "posts"), orderBy("createdAt", "desc"), limit(10));
+            if (!isInitial && lastVisible) q = query(collection(db, "posts"), orderBy("createdAt", "desc"), startAfter(lastVisible), limit(10));
+
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+                lastVisible = snap.docs[snap.docs.length - 1];
+                snap.forEach(d => renderPost(d));
+            } else {
+                document.getElementById('load-sentinel').innerText = "End of feed";
+            }
+            isFetching = false;
+        }
+
+        function initInfiniteScroll() {
+            const obs = new IntersectionObserver(entries => {
+                if (entries[0].isIntersecting && !isFetching) loadPosts();
+            }, { threshold: 0.5 });
+            obs.observe(document.getElementById('load-sentinel'));
+        }
+
+        function renderPost(d) {
+            const p = d.data();
+            const liked = (p.likes || []).includes(auth.currentUser.uid);
+            const images = Array.isArray(p.images) ? p.images : (p.imageUrl ? [p.imageUrl] : []);
+            const postIsAdmin = ADMIN_UIDS.includes(p.uid);
+
+            const cardHtml = `
+                <div class="post-card" id="post-${d.id}">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <a href="profile.html?uid=${p.uid}" class="user-link">
+                            <img src="${p.userPhoto || 'logo.png'}" style="width:38px; height:38px; border-radius:50%; border:1px solid var(--neon); object-fit:cover;">
+                            <b style="font-size:14px;">${p.username} ${postIsAdmin ? '<span class="admin-badge">ADMIN</span>' : ''}</b>
+                        </a>
+                        ${(p.uid === auth.currentUser.uid || isAdmin) ? `<i class="fa-solid fa-ellipsis-vertical" onclick="postAction('${d.id}', '${p.uid}', '${p.caption}')" style="cursor:pointer; padding:5px;"></i>` : ''}
+                    </div>
+                    ${images.length > 0 ? `<div class="media-container">${images.length > 1 ? `<div class="img-counter">1/${images.length}</div>` : ''}<div class="image-slider" onscroll="updateCounter(this, ${images.length})">${images.map(img => `<img src="${img}" class="post-img">`).join('')}</div></div>` : `<div class="post-text-only">${p.caption}</div>`}
+                    <div style="display:flex; gap:22px; color:var(--neon); font-size:24px; padding: 12px 0;">
+                        <i class="${liked ? 'fa-solid' : 'fa-regular'} fa-heart" style="${liked ? 'color:#ff4757' : ''}" onclick="toggleLike('${d.id}', ${JSON.stringify(p.likes || [])})"></i>
+                        <i class="fa-regular fa-comment" onclick="openComments('${d.id}')"></i>
+                        <i class="fa-solid fa-arrows-rotate" onclick="handleRepost('${d.id}')"></i>
+                        <i class="fa-regular fa-paper-plane" onclick="openShareSheet('${d.id}')"></i>
+                    </div>
+                    <div style="font-size:13px; color:#888;">${(p.likes || []).length} likes</div>
+                    <div style="font-size:14px; margin-top:5px;">${images.length > 0 ? `<b>${p.username}</b> ${p.caption || ''}` : ''}</div>
+                </div>`;
+            document.getElementById('posts-container').insertAdjacentHTML('beforeend', cardHtml);
+        }
+
+        window.toggleLike = async (id, l) => {
+            const uid = auth.currentUser.uid;
+            await updateDoc(doc(db, "posts", id), { likes: l.includes(uid) ? arrayRemove(uid) : arrayUnion(uid) });
+            // تحديث القلب فوراً واجهة المستخدم
+            const heart = document.querySelector(`#post-${id} .fa-heart`);
+            heart.classList.toggle('fa-solid'); heart.classList.toggle('fa-regular');
+            heart.style.color = heart.classList.contains('fa-solid') ? '#ff4757' : '';
+        };
+
+        window.openComments = (id) => { 
+            activePostId = id; cancelReply(); 
+            document.getElementById('comment-sheet').classList.add('active'); 
+            document.getElementById('overlay').classList.add('active'); 
+            onSnapshot(query(collection(db, "posts", id, "comments"), orderBy("createdAt", "asc")), (snap) => {
+                const r = document.getElementById('comments-render'); r.innerHTML = '';
+                snap.forEach(doc => {
+                    const c = doc.data();
+                    const cAdmin = ADMIN_UIDS.includes(c.uid);
+                    r.innerHTML += `<div class="comment-box ${c.replyTo?'is-reply':''}">
+                        <b style="color:var(--neon); font-size:12px;">${c.username} ${cAdmin ? '<span class="admin-badge">ADMIN</span>' : ''}</b>
+                        <div style="font-size:13px; margin:4px 0;">${c.text}</div>
+                        <div style="font-size:10px; color:#888; cursor:pointer;" onclick="setReply('${doc.id}','${c.username}')">Reply</div>
+                    </div>`;
+                });
+            });
+        };
+
+        window.sendComment = async () => {
+            const i = document.getElementById('comment-input'); if(!i.value) return;
+            await addDoc(collection(db, "posts", activePostId, "comments"), { text: i.value, username: auth.currentUser.displayName || "User", createdAt: serverTimestamp(), replyTo: replyToId, uid: auth.currentUser.uid });
+            i.value = ''; cancelReply();
+        };
+
+        window.postAction = async (pid, uid, cap) => {
+            let op = prompt(isAdmin && uid !== auth.currentUser.uid ? "1. Delete\n2. Ban" : "1. Delete\n2. Edit");
+            if(op === "1") { if(confirm("Delete?")) await deleteDoc(doc(db, "posts", pid)); }
+            if(op === "2" && isAdmin) await updateDoc(doc(db, "users", uid), { isBanned: true });
+            if(op === "2" && !isAdmin) {
+                const nt = prompt("New caption:", cap);
+                if(nt) await updateDoc(doc(db, "posts", pid), { caption: nt });
+            }
+        };
+
+        function loadStories() {
+            const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            onSnapshot(query(collection(db, "stories"), where("createdAt", ">", yesterday)), (snap) => {
+                const list = document.getElementById('stories-list');
+                const addBtn = list.firstElementChild; list.innerHTML = ''; list.appendChild(addBtn);
+                snap.forEach(d => {
+                    const s = d.data();
+                    if (currentUserFollowing.includes(s.uid) || s.uid === auth.currentUser.uid) {
+                        list.innerHTML += `<div style="min-width:70px; text-align:center;"><div style="width:65px; height:65px; border-radius:50%; padding:2px; background:linear-gradient(45deg, var(--neon), #00d4ff);" onclick="location.href='story-view.html?id=${d.id}'"><img src="${s.imageUrl}" style="width:100%; height:100%; border-radius:50%; border:2px solid #000; object-fit:cover;"></div><span style="font-size:11px;">${s.username}</span></div>`;
+                    }
+                });
+            });
+        }
+
+        window.handleRepost = async (id) => {
+            const s = await getDoc(doc(db, "posts", id));
+            if(s.exists()){
+                await addDoc(collection(db, "posts"), { ...s.data(), uid: auth.currentUser.uid, username: auth.currentUser.displayName, createdAt: serverTimestamp(), likes: [] });
+                alert("Reposted!");
+            }
+        };
+
+        window.openShareSheet = (postId) => {
+            activePostId = postId;
+            document.getElementById('overlay').classList.add('active');
+            document.getElementById('share-sheet').classList.add('active');
+            const listRender = document.getElementById('share-list');
+            listRender.innerHTML = 'Loading...';
+            onSnapshot(query(collection(db, "chats"), where("participants", "array-contains", auth.currentUser.uid)), (snap) => {
+                listRender.innerHTML = '';
+                snap.forEach(d => {
+                    const otherUid = d.data().participants.find(u => u !== auth.currentUser.uid);
+                    if(otherUid) {
+                        listRender.innerHTML += `<div style="display:flex; justify-content:space-between; margin-bottom:10px; background:#111; padding:10px; border-radius:10px;"><span>User: ${otherUid.substring(0,6)}</span><button onclick="sendPostToUser('${otherUid}', '${postId}')" style="background:var(--neon); border:none; padding:5px 10px; border-radius:5px;">Send</button></div>`;
+                    }
+                });
+            });
+        };
+
+        window.sendPostToUser = async (toUid, pid) => {
+            await addDoc(collection(db, "chats"), { sender: auth.currentUser.uid, receiver: toUid, participants: [auth.currentUser.uid, toUid], postId: pid, type: 'share_post', createdAt: serverTimestamp() });
+            alert("Sent!"); closeAll();
+        };
+
+        window.updateCounter = (el, total) => {
+            const index = Math.round(el.scrollLeft / el.offsetWidth) + 1;
+            const counter = el.parentElement.querySelector('.img-counter');
+            if(counter) counter.innerText = `${index}/${total}`;
+        };
+
+        window.setReply = (id, n) => { replyToId = id; document.getElementById('reply-indicator').style.display='block'; document.getElementById('reply-user').innerText=n; document.getElementById('comment-input').focus(); };
+        window.cancelReply = () => { replyToId = null; document.getElementById('reply-indicator').style.display='none'; };
+        window.closeAll = () => { document.querySelectorAll('#comment-sheet, #share-sheet, #overlay').forEach(e => e.classList.remove('active')); };
+    </script>
+</body>
+</html>

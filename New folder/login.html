@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html id="html-tag">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Whiterchat | Access</title>
+    <style>
+        :root { --neon: #00ff88; --dark: #020202; --card-bg: rgba(255, 255, 255, 0.04); --error: #ff4d4d; --gray: #8e8e8e; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body { background: var(--dark); color: white; font-family: -apple-system, system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; overflow: hidden; }
+        
+        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10000; width: 90%; max-width: 350px; }
+        .toast { background: #1a1a1a; color: white; padding: 15px 20px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--neon); box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; animation: slideDown 0.4s ease forwards; font-size: 14px; text-align: center; line-height: 1.4; }
+        .toast.error { border-left-color: var(--error); }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card { width: 100%; max-width: 400px; padding: 45px 25px; background: var(--card-bg); border: 1px solid rgba(0, 255, 136, 0.15); border-radius: 32px; backdrop-filter: blur(25px); text-align: center; }
+        h2 { color: var(--neon); margin-bottom: 35px; font-size: 32px; font-weight: 900; }
+        
+        .input-group { position: relative; margin-bottom: 15px; }
+        input { width: 100%; padding: 17px; background: rgba(0,0,0,0.6); border: 1px solid #222; border-radius: 16px; color: white; font-size: 16px; transition: 0.3s; border-left: 4px solid transparent; }
+        input:focus { border-color: var(--neon); border-left: 4px solid var(--neon); background: #000; }
+        
+        .btn { width: 100%; padding: 18px; background: var(--neon); color: #000; border: none; border-radius: 16px; font-weight: 800; cursor: pointer; font-size: 17px; margin-top: 15px; transition: 0.3s; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(15px); padding: 20px; }
+        .footer-links { margin-top: 25px; font-size: 14px; color: var(--gray); }
+        .footer-links b { color: var(--neon); cursor: pointer; padding: 5px; }
+
+        [dir="rtl"] { text-align: right; } [dir="ltr"] { text-align: left; }
+    </style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<div class="card">
+    <h2 id="ui-title">Whiterchat</h2>
+    <div class="input-group"><input type="email" id="loginEmail" spellcheck="false"></div>
+    <div class="input-group"><input type="password" id="loginPass"></div>
+    <button class="btn" id="loginBtn" disabled></button>
+    <div class="footer-links">
+        <span id="ui-forgot-text"></span> <b id="openRecover"></b><br><br>
+        <span id="ui-no-acc"></span> <b id="ui-signup-link"></b>
+    </div>
+</div>
+
+<div id="recoverModal" class="modal">
+    <div class="card" style="max-width:360px;">
+        <h3 id="ui-rec-title"></h3>
+        <p id="ui-rec-desc" style="font-size: 12px; color: var(--gray); margin-bottom: 20px;"></p>
+        <div class="input-group"><input type="email" id="recoverEmail" spellcheck="false"></div>
+        <button class="btn" id="sendResetBtn"></button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    // إعدادات فايربيس الخاصة بك
+    const firebaseConfig = { 
+        apiKey: "AIzaSyBkjn1uIjzvmC4suZdA8bfYNO_fx5Hnj0s", 
+        authDomain: "comments-5e3b5.firebaseapp.com", 
+        projectId: "comments-5e3b5", 
+        storageBucket: "comments-5e3b5.firebasestorage.app", 
+        messagingSenderId: "907122259758", 
+        appId: "1:907122259758:web:7819cab50ebd74dd912cbf" 
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // نظام الترجمة التلقائي
+    const translations = {
+        ar: { mail: "البريد الإلكتروني", pass: "كلمة المرور", login: "دخول آمن", forgot: "نسيت كلمة المرور؟", reset: "استعادة", signup: "سجل الآن", no_acc: "ليس لديك حساب؟", rec_h: "استعادة الحساب", rec_d: "أدخل إيميلك وسنرسل لك رابطاً رسمياً لتغيير كلمة المرور", send: "إرسال رابط التغيير", err: "خطأ في بيانات الدخول ❌", write_mail: "يرجى كتابة الإيميل أولاً", sent: "📩 تم إرسال الرابط لإيميلك بنجاح" },
+        en: { mail: "Email Address", pass: "Password", login: "Secure Login", forgot: "Forgot Password?", reset: "Recover", signup: "Sign Up", no_acc: "No account?", rec_h: "Account Recovery", rec_d: "Enter your email to receive a secure password reset link", send: "Send Reset Link", err: "Invalid Login Credentials ❌", write_mail: "Please enter your email", sent: "📩 Reset link sent to your email" }
+    };
+
+    const lang = navigator.language.startsWith('ar') ? 'ar' : 'en';
+    const t = translations[lang];
+    document.body.dir = lang === 'ar' ? 'rtl' : 'ltr';
+
+    // تعبئة النصوص بناءً على اللغة
+    document.getElementById('loginEmail').placeholder = t.mail;
+    document.getElementById('loginPass').placeholder = t.pass;
+    document.getElementById('loginBtn').innerText = t.login;
+    document.getElementById('ui-forgot-text').innerText = t.forgot;
+    document.getElementById('openRecover').innerText = t.reset;
+    document.getElementById('ui-no-acc').innerText = t.no_acc;
+    document.getElementById('ui-signup-link').innerText = t.signup;
+    document.getElementById('ui-rec-title').innerText = t.rec_h;
+    document.getElementById('ui-rec-desc').innerText = t.rec_d;
+    document.getElementById('recoverEmail').placeholder = t.mail;
+    document.getElementById('sendResetBtn').innerText = t.send;
+
+    function showToast(msg, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type === 'error' ? 'error' : ''}`;
+        toast.innerText = msg;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+    }
+
+    // تفعيل زر الدخول عند الكتابة
+    const validateInputs = () => {
+        const e = document.getElementById('loginEmail').value;
+        const p = document.getElementById('loginPass').value;
+        document.getElementById('loginBtn').disabled = !(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) && p.length >= 6);
+    };
+    document.getElementById('loginEmail').oninput = validateInputs;
+    document.getElementById('loginPass').oninput = validateInputs;
+
+    // تنفيذ تسجيل الدخول
+    document.getElementById('loginBtn').onclick = async () => {
+        const btn = document.getElementById('loginBtn');
+        btn.disabled = true;
+        try {
+            await signInWithEmailAndPassword(auth, document.getElementById('loginEmail').value, document.getElementById('loginPass').value);
+            window.location.href = "welcome.html";
+        } catch (e) {
+            showToast(t.err, "error");
+            btn.disabled = false;
+        }
+    };
+
+    // فتح وإغلاق المودال
+    document.getElementById('openRecover').onclick = () => document.getElementById('recoverModal').style.display = 'flex';
+    window.onclick = (e) => { if(e.target.id == 'recoverModal') e.target.style.display = 'none'; };
+
+    // إرسال رابط إعادة تعيين كلمة المرور
+    document.getElementById('sendResetBtn').onclick = async () => {
+        const email = document.getElementById('recoverEmail').value;
+        if (!email) return showToast(t.write_mail, "error");
+
+        try {
+            await sendPasswordResetEmail(auth, email);
+            showToast(t.sent);
+            setTimeout(() => { document.getElementById('recoverModal').style.display = 'none'; }, 2500);
+        } catch (e) {
+            showToast(e.message, "error");
+        }
+    };
+
+    document.getElementById('ui-signup-link').onclick = () => window.location.href = 'signup.html';
+</script>
+</body>
+</html>

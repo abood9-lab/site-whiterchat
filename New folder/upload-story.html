@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Whiterchat Legend | Creator</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00ff88">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="icon" href="logo.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --spotify: #1DB954; --neon: #00ff88; --dark: #01080b; --glass: rgba(255, 255, 255, 0.1); }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
+        body { background: var(--dark); color: white; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+        /* Workspace */
+        .editor-container { 
+            flex: 1; margin: 10px; border-radius: 30px; position: relative;
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; border: 1px solid rgba(255,255,255,0.1);
+            background: linear-gradient(135deg, #00ff88 0%, #005f4b 100%); 
+            transition: background 0.5s ease;
+        }
+
+        #story-img { width: 100%; height: 100%; object-fit: cover; display: none; position: absolute; inset: 0; }
+
+        /* Main Text Area */
+        #main-text {
+            z-index: 10; width: 85%; text-align: center; font-size: 32px; font-weight: 800;
+            background: none; border: none; color: white; outline: none;
+            text-shadow: 0 5px 15px rgba(0,0,0,0.3); caret-color: var(--neon);
+            display: block; resize: none;
+        }
+
+        /* Music Sticker */
+        #music-sticker {
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(15px); border-radius: 20px;
+            padding: 10px 15px; display: none; align-items: center; gap: 12px;
+            width: 260px; border: 1px solid var(--glass); z-index: 20;
+        }
+        #music-sticker img { width: 45px; height: 45px; border-radius: 8px; }
+
+        /* Tools */
+        .toolbar { height: 100px; display: flex; justify-content: space-around; align-items: center; padding-bottom: 20px; }
+        .tool-btn { display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer; color: #fff; }
+        .tool-btn i { width: 50px; height: 50px; background: var(--glass); border-radius: 15px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        
+        /* Music Search UI */
+        #music-menu { 
+            position: fixed; bottom: -100%; left: 0; width: 100%; height: 70vh; 
+            background: rgba(10,10,10,0.98); backdrop-filter: blur(20px);
+            border-radius: 30px 30px 0 0; transition: 0.5s; padding: 25px; z-index: 1000;
+        }
+        .search-in { width: 100%; padding: 15px; border-radius: 15px; border: none; background: #222; color: white; margin-top: 15px; }
+        .results { height: 80%; overflow-y: auto; margin-top: 15px; }
+        .track { display: flex; align-items: center; gap: 12px; padding: 10px; border-bottom: 1px solid #222; cursor: pointer; }
+
+        .publish-btn { color: var(--neon) !important; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="editor-container" id="canvas">
+        <img id="story-img">
+        <textarea id="main-text" placeholder="Type something..."></textarea>
+        
+        <div id="music-sticker">
+            <img id="stk-art" src="">
+            <div style="flex:1; overflow:hidden">
+                <b id="stk-name" style="font-size:13px; display:block; white-space:nowrap"></b>
+                <span id="stk-artist" style="font-size:11px; opacity:0.7"></span>
+            </div>
+            <i class="fa-brands fa-spotify" style="color:var(--spotify)"></i>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <div class="tool-btn" onclick="document.getElementById('file-in').click()">
+            <i class="fa-solid fa-image"></i><span>Photo</span>
+            <input type="file" id="file-in" hidden onchange="handleImg(this)">
+        </div>
+        <div class="tool-btn" onclick="changeBg()">
+            <i class="fa-solid fa-palette"></i><span>Color</span>
+        </div>
+        <div class="tool-btn" onclick="openMusic()">
+            <i class="fa-solid fa-music"></i><span>Music</span>
+        </div>
+        <div class="tool-btn publish-btn" onclick="publish()">
+            <i class="fa-solid fa-paper-plane"></i><span>Post</span>
+        </div>
+    </div>
+
+    <div id="music-menu">
+        <div style="display:flex; justify-content:space-between; align-items: center;">
+            <h3>Select Music</h3>
+            <i class="fa-solid fa-times" onclick="closeMusic()" style="cursor: pointer; font-size: 20px;"></i>
+        </div>
+        <input type="text" class="search-in" placeholder="Search for a song..." oninput="search(this.value)">
+        <div id="results" class="results"></div>
+    </div>
+
+    <audio id="player" loop></audio>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = { apiKey: "AIzaSyBkjn1uIjzvmC4suZdA8bfYNO_fx5Hnj0s", projectId: "comments-5e3b5" };
+        const app = initializeApp(firebaseConfig); 
+        const db = getFirestore(app); 
+        const auth = getAuth(app);
+
+        let selectedTrack = null;
+        let selectedFile = null;
+        let bgIndex = 0;
+        const gradients = [
+            "linear-gradient(135deg, #00ff88 0%, #005f4b 100%)",
+            "linear-gradient(135deg, #ff0080 0%, #7928ca 100%)",
+            "linear-gradient(135deg, #37ecba 0%, #72afd3 100%)",
+            "linear-gradient(135deg, #f6d365 0%, #fda085 100%)",
+            "linear-gradient(135deg, #000000 0%, #434343 100%)"
+        ];
+
+        window.changeBg = () => {
+            bgIndex = (bgIndex + 1) % gradients.length;
+            document.getElementById('canvas').style.background = gradients[bgIndex];
+            document.getElementById('story-img').style.display = 'none';
+            selectedFile = null;
+        };
+
+        window.handleImg = (input) => {
+            const file = input.files[0];
+            if(file) {
+                selectedFile = file;
+                const img = document.getElementById('story-img');
+                img.src = URL.createObjectURL(file);
+                img.style.display = 'block';
+            }
+        };
+
+        window.search = (q) => {
+            if(!q) return;
+            const s = document.createElement('script');
+            s.src = `https://api.deezer.com/search?q=${encodeURIComponent(q)}&output=jsonp&callback=showMusic`;
+            document.body.appendChild(s);
+        };
+
+        window.showMusic = (res) => {
+            const resDiv = document.getElementById('results'); 
+            resDiv.innerHTML = "";
+            res.data.slice(0,10).forEach(t => {
+                const d = document.createElement('div'); 
+                d.className="track";
+                d.onclick = () => {
+                    selectedTrack = { name:t.title, artist:t.artist.name, img:t.album.cover_medium, url:t.preview };
+                    document.getElementById('player').src = t.preview; 
+                    document.getElementById('player').play();
+                    document.getElementById('stk-name').innerText = t.title;
+                    document.getElementById('stk-artist').innerText = t.artist.name;
+                    document.getElementById('stk-art').src = t.album.cover_medium;
+                    document.getElementById('music-sticker').style.display = 'flex';
+                    closeMusic();
+                };
+                d.innerHTML = `<img src="${t.album.cover_small}" style="border-radius:5px"> <div><b>${t.title}</b><br><small>${t.artist.name}</small></div>`;
+                resDiv.appendChild(d);
+            });
+        };
+
+        window.openMusic = () => document.getElementById('music-menu').style.bottom = '0';
+        window.closeMusic = () => document.getElementById('music-menu').style.bottom = '-100%';
+
+        window.publish = async () => {
+            const user = auth.currentUser; 
+            if(!user) return alert("Please log in first");
+            
+            const btn = document.querySelector('.publish-btn');
+            btn.style.opacity = '0.5';
+            btn.innerText = "Posting...";
+
+            let finalUrl = "";
+
+            if(selectedFile) {
+                const fd = new FormData(); 
+                fd.append('file', selectedFile); 
+                fd.append('upload_preset', 'raneem');
+                try {
+                    const res = await fetch(`https://api.cloudinary.com/v1_1/dt5pdj978/image/upload`, {method:'POST', body:fd});
+                    const data = await res.json(); 
+                    finalUrl = data.secure_url;
+                } catch (e) {
+                    alert("Image upload failed");
+                    return;
+                }
+            }
+
+            try {
+                await addDoc(collection(db, "stories"), {
+                    uid: user.uid,
+                    username: user.displayName || "Anonymous",
+                    userPhoto: user.photoURL || "",
+                    text: document.getElementById('main-text').value,
+                    bg: selectedFile ? "" : gradients[bgIndex],
+                    imageUrl: finalUrl,
+                    music: selectedTrack,
+                    createdAt: serverTimestamp()
+                });
+                alert("Story Posted!"); 
+                window.location.href = "feed.html";
+            } catch (e) {
+                alert("Publish failed. Try again.");
+                btn.style.opacity = '1';
+                btn.innerText = "Post";
+            }
+        };
+    </script>
+</body>
+</html>

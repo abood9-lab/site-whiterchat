@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Whitechat | Notifications</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00ff88">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="icon" href="logo.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --neon: #00ff88; --bg: #01080b; --glass: rgba(15, 30, 35, 0.9); --border: rgba(0, 255, 136, 0.2); }
+        body { background: var(--bg); color: white; font-family: sans-serif; margin: 0; padding-bottom: 80px; }
+        .header { padding: 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 100; }
+        .noti-list { padding: 10px; }
+        .noti-item { 
+            display: flex; align-items: center; gap: 15px; padding: 15px; 
+            border-bottom: 1px solid #111; transition: 0.3s; cursor: pointer;
+            position: relative;
+        }
+        .noti-item.unread { background: rgba(0, 255, 136, 0.05); }
+        .noti-item.unread::before { 
+            content: ''; position: absolute; left: 5px; top: 50%; 
+            width: 8px; height: 8px; background: var(--neon); border-radius: 50%; transform: translateY(-50%);
+        }
+        .user-img { width: 45px; height: 45px; border-radius: 50%; border: 1px solid var(--neon); object-fit: cover; }
+        .noti-content { flex: 1; font-size: 14px; }
+        .noti-content b { color: var(--neon); }
+        .noti-time { font-size: 11px; color: #555; margin-top: 4px; }
+        .noti-media { width: 45px; height: 45px; border-radius: 8px; object-fit: cover; }
+        .empty-state { text-align: center; padding: 50px; color: #555; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2 style="margin:0; font-size: 20px;">Notifications <i class="fa-solid fa-bell"></i></h2>
+    </div>
+    <div id="notifications-list" class="noti-list">
+        <div class="empty-state">Loading notifications...</div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, query, where, orderBy, onSnapshot, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = { 
+            apiKey: "AIzaSyBkjn1uIjzvmC4suZdA8bfYNO_fx5Hnj0s", 
+            authDomain: "comments-5e3b5.firebaseapp.com", 
+            projectId: "comments-5e3b5", 
+            storageBucket: "comments-5e3b5.firebasestorage.app", 
+            appId: "1:907122259758:web:7819cab50ebd74dd912cbf" 
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                listenToNotifications(user.uid);
+            } else {
+                location.href = 'login.html';
+            }
+        });
+
+        function listenToNotifications(uid) {
+            const q = query(
+                collection(db, "notifications"), 
+                where("targetUid", "==", uid),
+                orderBy("createdAt", "desc")
+            );
+
+            onSnapshot(q, (snap) => {
+                const list = document.getElementById('notifications-list');
+                list.innerHTML = '';
+
+                if (snap.empty) {
+                    list.innerHTML = '<div class="empty-state">No notifications yet</div>';
+                    return;
+                }
+
+                snap.forEach(d => {
+                    const n = d.data();
+                    const time = n.createdAt?.toDate().toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'}) || '';
+
+                    let message = "";
+                    let icon = "";
+
+                    if(n.type === 'follow') {
+                        message = "started following you.";
+                        icon = '<i class="fa-solid fa-user-plus" style="color:#0088ff"></i>';
+                    } else if(n.type === 'like_story' || n.type === 'like_post') {
+                        message = "liked your post/story.";
+                        icon = '<i class="fa-solid fa-heart" style="color:#ff4d4d"></i>';
+                    }
+
+                    const html = `
+                        <div class="noti-item ${n.isRead ? '' : 'unread'}" onclick="markAsRead('${d.id}', '${n.fromUid}')">
+                            <img src="${n.fromPhoto || 'https://via.placeholder.com/45'}" class="user-img">
+                            <div class="noti-content">
+                                <b>${n.fromName}</b> ${message}
+                                <div class="noti-time">${icon} ${time}</div>
+                            </div>
+                            ${n.storyImg ? `<img src="${n.storyImg}" class="noti-media">` : ''}
+                        </div>
+                    `;
+                    list.innerHTML += html;
+                });
+            });
+        }
+
+        window.markAsRead = async (id, fromUid) => {
+            // Update notification as read
+            await updateDoc(doc(db, "notifications", id), { isRead: true });
+            // Navigate to the profile of the person who sent the notification
+            location.href = `profile.html?uid=${fromUid}`;
+        };
+    </script>
+</body>
+</html>

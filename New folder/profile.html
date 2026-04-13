@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Whiterchat | Pro Profile</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00ff88">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="icon" href="logo.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { 
+            --neon: #00ff88; 
+            --bg: #01080b; 
+            --card-glass: rgba(10, 15, 18, 0.8); 
+            --border: rgba(0, 255, 136, 0.3); 
+            --online: #23a55a; 
+            --offline: #f23f43; 
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--bg); color: white; font-family: -apple-system, sans-serif; margin: 0; padding: 20px; padding-bottom: 80px; overflow-x: hidden; }
+
+        /* الكرت الرئيسي */
+        .profile-card {
+            background: var(--card-glass); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            border-radius: 35px; text-align: center; border: 1px solid var(--border);
+            max-width: 450px; margin: 0 auto; position: relative; overflow: hidden; padding-bottom: 30px;
+            z-index: 1;
+        }
+
+        /* نظام البانر المتطور */
+        .full-banner-bg { position: absolute; top: 0; left: 0; width: 100%; height: 320px; z-index: 0; overflow: hidden; pointer-events: none; }
+        #banner-media-container { width: 100%; height: 100%; object-fit: cover; opacity: 0.6; }
+        .banner-mask { position: absolute; inset: 0; background: linear-gradient(180deg, transparent 0%, var(--bg) 98%); }
+
+        /* أزرار التعديل المعزولة */
+        .edit-banner-btn {
+            position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.8); color: white; 
+            width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; 
+            justify-content: center; cursor: pointer; z-index: 999; border: 2px solid var(--neon);
+            box-shadow: 0 0 15px var(--neon);
+        }
+
+        /* طبقات التحميل (Loader) */
+        .upload-overlay {
+            position: absolute; inset: 0; background: rgba(0,0,0,0.85);
+            display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000;
+        }
+
+        .card-content { position: relative; z-index: 10; padding-top: 45px; }
+
+        /* الأفاتار والزينة */
+        .avatar-wrapper { position: relative; width: 140px; height: 140px; margin: 0 auto 20px; z-index: 20; }
+        .avatar-wrapper img { width: 100%; height: 100%; border-radius: 50%; border: 4px solid var(--neon); object-fit: cover; }
+        #avatar-decoration { position: absolute; inset: -15px; z-index: 21; pointer-events: none; background-size: contain; background-repeat: no-repeat; }
+        .status-dot { position: absolute; bottom: 10px; right: 10px; width: 28px; height: 28px; border-radius: 50%; border: 4px solid #0d1a17; z-index: 22; }
+        .pfp-edit-badge { 
+            position: absolute; bottom: 0; left: 0; background: var(--neon); color: black; 
+            width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; 
+            justify-content: center; cursor: pointer; z-index: 23; border: 3px solid #0d1a17;
+        }
+
+        /* البايو والروابط */
+        .bio-note { 
+            color: #eee; font-size: 14px; margin: 15px 25px; line-height: 1.6; 
+            background: rgba(0,0,0,0.5); padding: 15px; border-radius: 20px;
+            position: relative; z-index: 50;
+        }
+        .bio-note a { color: var(--neon) !important; text-decoration: underline !important; font-weight: bold; position: relative; z-index: 60; }
+
+        /* الأزرار والإحصائيات */
+        #action-area { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; }
+        .btn-main { 
+            background: var(--neon); color: black; border: none; padding: 12px 28px; 
+            border-radius: 25px; font-weight: bold; cursor: pointer; z-index: 50;
+            display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0, 255, 136, 0.2);
+        }
+        .btn-discovery { background: transparent; color: var(--neon); border: 1.5px solid var(--neon); }
+
+        .stats-row { display: flex; justify-content: space-around; margin: 0 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1); }
+        .stat-item { cursor: pointer; text-align: center; z-index: 50; }
+        .stat-num { display: block; color: var(--neon); font-size: 24px; font-weight: bold; }
+        .stat-label { color: #555; font-size: 11px; font-weight: bold; }
+
+        /* التبويبات والشبكة */
+        .tabs { display: flex; border-bottom: 1px solid #222; margin-top: 30px; }
+        .tab { flex: 1; text-align: center; padding: 15px; color: #444; cursor: pointer; font-size: 20px; }
+        .tab.active { color: var(--neon); border-bottom: 3px solid var(--neon); }
+
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 10px; }
+        .grid-item { aspect-ratio: 1/1; background: #0a0f12; border-radius: 8px; overflow: hidden; }
+        .grid-item img, .grid-item video { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Spinner Animation */
+        .spinner { width: 30px; height: 30px; border: 4px solid rgba(255,255,255,0.1); border-top-color: var(--neon); border-radius: 50%; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* المودالات */
+        .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: none; align-items: center; justify-content: center; z-index: 5000; backdrop-filter: blur(10px); }
+        .modal-content { background: #0a0f12; padding: 25px; border-radius: 30px; width: 88%; max-width: 400px; border: 1px solid var(--border); }
+        .user-list-item { display: flex; align-items: center; gap: 15px; padding: 12px; border-bottom: 1px solid #111; text-decoration: none; color: white; }
+        .user-list-item img { width: 48px; height: 48px; border-radius: 50%; border: 1px solid var(--neon); }
+        input, textarea { width: 100%; padding: 14px; background: #000; border: 1px solid #222; color: white; border-radius: 15px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="profile-card">
+        <div id="upload-loader" class="upload-overlay">
+            <div class="spinner"></div>
+            <p style="color:var(--neon); margin-top:10px; font-weight:bold;">جاري الرفع...</p>
+        </div>
+
+        <div id="banner-edit-btn" class="edit-banner-btn" style="display:none;">
+            <i class="fa-solid fa-camera"></i>
+        </div>
+
+        <div class="full-banner-bg">
+            <div id="banner-media-container" style="height:100%"></div>
+            <div class="banner-mask"></div>
+        </div>
+
+        <div class="card-content">
+            <div class="avatar-wrapper">
+                <img id="user-photo" src="logo.png">
+                <div id="avatar-decoration"></div>
+                <div id="status-dot" class="status-dot"></div>
+                <div id="pfp-edit-btn" class="pfp-edit-badge" style="display:none;">
+                    <i class="fa-solid fa-camera"></i>
+                </div>
+            </div>
+
+            <div class="user-info">
+                <h2 id="display-name" style="margin:0; font-size:26px;">...</h2>
+                <p id="username-at" style="color:#666; margin-bottom:12px;">@username</p>
+                <div class="bio-note" id="user-note">...</div>
+            </div>
+
+            <div id="action-area"></div>
+
+            <div class="stats-row">
+                <div class="stat-item"> <span class="stat-num" id="posts-count">0</span> <span class="stat-label">Posts</span> </div>
+                <div class="stat-item" onclick="openUsersModal('followers')"> <span class="stat-num" id="followers-count">0</span> <span class="stat-label">Followers</span> </div>
+                <div class="stat-item" onclick="openUsersModal('following')"> <span class="stat-num" id="following-count">0</span> <span class="stat-label">Following</span> </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('posts', this)"><i class="fa-solid fa-grip-vertical"></i></div>
+        <div class="tab" onclick="switchTab('reels', this)"><i class="fa-solid fa-play-circle"></i></div>
+    </div>
+
+    <div id="grid-content" class="grid"></div>
+
+    <input type="file" id="pfpInput" hidden accept="image/*">
+    <input type="file" id="bannerInput" hidden accept="image/*,video/*">
+
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <h3 style="color:var(--neon); margin-top:0;">Edit Profile</h3>
+            <input type="text" id="edit-name-input" placeholder="Display Name">
+            <textarea id="edit-note-input" placeholder="Bio (Supports Links)"></textarea>
+            <button class="btn-main" style="width:100%" onclick="saveProfileData()">Save Changes</button>
+            <button onclick="closeModal('edit-modal')" style="background:none; border:none; color:#555; width:100%; margin-top:10px; cursor:pointer;">Cancel</button>
+        </div>
+    </div>
+
+    <div id="users-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modal-title" style="color:var(--neon); margin-top:0;">Users</h3>
+            <div id="users-list-container" style="max-height: 300px; overflow-y: auto; margin: 15px 0;"></div>
+            <button class="btn-main" style="width:100%" onclick="closeModal('users-modal')">Close</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = { 
+            apiKey: "AIzaSyBkjn1uIjzvmC4suZdA8bfYNO_fx5Hnj0s", 
+            authDomain: "comments-5e3b5.firebaseapp.com", 
+            projectId: "comments-5e3b5", 
+            appId: "1:907122259758:web:7819cab50ebd74dd912cbf" 
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const CLOUD_NAME = "dt5pdj978", UPLOAD_PRESET = "raneem";
+
+        let profileUid = new URLSearchParams(window.location.search).get('uid');
+        let isMyProfile = false;
+        let userData = {};
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) return location.href = 'login.html';
+            if (!profileUid) profileUid = user.uid;
+            isMyProfile = (profileUid === user.uid);
+            
+            if (isMyProfile) {
+                document.getElementById('banner-edit-btn').style.display = 'flex';
+                document.getElementById('pfp-edit-btn').style.display = 'flex';
+            }
+            
+            await loadUserData();
+            switchTab('posts');
+        });
+
+        // تشغيل أزرار الرفع
+        document.getElementById('banner-edit-btn').onclick = () => document.getElementById('bannerInput').click();
+        document.getElementById('pfp-edit-btn').onclick = () => document.getElementById('pfpInput').click();
+
+        async function loadUserData() {
+            const snap = await getDoc(doc(db, "users", profileUid));
+            if (!snap.exists()) return;
+            userData = snap.data();
+
+            document.getElementById('display-name').innerText = userData.username || "User";
+            document.getElementById('username-at').innerText = "@" + (userData.username?.replace(/\s+/g, '').toLowerCase() || "user");
+            
+            // تحويل الروابط في البايو
+            const rawBio = userData.note || "مرحباً بكم في بروفايلي";
+            document.getElementById('user-note').innerHTML = rawBio.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" onclick="event.stopPropagation()">$1</a>');
+
+            document.getElementById('user-photo').src = userData.photoURL || "logo.png";
+            document.getElementById('status-dot').style.backgroundColor = userData.status === 'online' ? 'var(--online)' : 'var(--offline)';
+
+            // البانر
+            const bannerBox = document.getElementById('banner-media-container');
+            if (userData.bannerURL) {
+                const isVideo = userData.bannerURL.includes('.mp4') || userData.bannerURL.includes('.mov');
+                bannerBox.innerHTML = isVideo ? `<video src="${userData.bannerURL}" autoplay muted loop playsinline style="width:100%;height:100%;object-fit:cover"></video>` 
+                                              : `<img src="${userData.bannerURL}" style="width:100%;height:100%;object-fit:cover">`;
+            }
+
+            // الزينة
+            if(userData.avatarDecoration) document.getElementById('avatar-decoration').style.backgroundImage = `url('${userData.avatarDecoration}')`;
+
+            document.getElementById('followers-count').innerText = (userData.followers || []).length;
+            document.getElementById('following-count').innerText = (userData.following || []).length;
+
+            const area = document.getElementById('action-area');
+            const discoveryBtn = `<button class="btn-main btn-discovery" onclick="location.href='discovery.html'"><i class="fa-solid fa-video"></i> Whiter VV</button>`;
+            
+            if (isMyProfile) {
+                area.innerHTML = `<button class="btn-main" onclick="openEditModal()">Edit Profile</button>` + discoveryBtn;
+            } else {
+                const isFollowing = (userData.followers || []).includes(auth.currentUser.uid);
+                area.innerHTML = `<button class="btn-main" style="background:${isFollowing ? '#222' : 'var(--neon)'}; color:${isFollowing ? 'white' : 'black'}" onclick="toggleFollow(${isFollowing})">${isFollowing ? 'Following' : 'Follow'}</button>` + discoveryBtn;
+            }
+        }
+
+        async function handleUpload(file, field) {
+            if(!file) return;
+            document.getElementById('upload-loader').style.display = 'flex';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', UPLOAD_PRESET);
+
+            try {
+                const resp = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`, { method: 'POST', body: formData });
+                const data = await resp.json();
+                await updateDoc(doc(db, "users", auth.currentUser.uid), { [field]: data.secure_url });
+                location.reload();
+            } catch (err) { 
+                alert("Upload failed"); 
+                document.getElementById('upload-loader').style.display = 'none';
+            }
+        }
+
+        document.getElementById('pfpInput').onchange = (e) => handleUpload(e.target.files[0], 'photoURL');
+        document.getElementById('bannerInput').onchange = (e) => handleUpload(e.target.files[0], 'bannerURL');
+
+        window.toggleFollow = async (isFollowing) => {
+            const myId = auth.currentUser.uid;
+            await updateDoc(doc(db, "users", myId), { following: isFollowing ? arrayRemove(profileUid) : arrayUnion(profileUid) });
+            await updateDoc(doc(db, "users", profileUid), { followers: isFollowing ? arrayRemove(myId) : arrayUnion(myId) });
+            if(!isFollowing) {
+                await addDoc(collection(db, "notifications"), {
+                    targetUid: profileUid, fromUid: myId, fromName: auth.currentUser.displayName || "Someone",
+                    fromPhoto: auth.currentUser.photoURL || "logo.png", type: 'follow', isRead: false, createdAt: serverTimestamp()
+                });
+            }
+            loadUserData();
+        };
+
+        window.openUsersModal = async (type) => {
+            const list = (type === 'followers') ? (userData.followers || []) : (userData.following || []);
+            document.getElementById('modal-title').innerText = type.toUpperCase();
+            const container = document.getElementById('users-list-container');
+            container.innerHTML = "Loading...";
+            document.getElementById('users-modal').style.display = 'flex';
+
+            let html = '';
+            for (const uid of list) {
+                const uSnap = await getDoc(doc(db, "users", uid));
+                if (uSnap.exists()) {
+                    const u = uSnap.data();
+                    html += `<a href="profile.html?uid=${uid}" class="user-list-item"><img src="${u.photoURL || 'logo.png'}"><b>${u.username}</b></a>`;
+                }
+            }
+            container.innerHTML = html || "<p style='text-align:center; color:#555;'>Empty</p>";
+        };
+
+        window.switchTab = async (type, el) => {
+            if(el) {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                el.classList.add('active');
+            }
+            const grid = document.getElementById('grid-content');
+            grid.innerHTML = '...';
+            const q = query(collection(db, type === 'posts' ? "posts" : "reels"), where("uid", "==", profileUid));
+            const snap = await getDocs(q);
+            grid.innerHTML = '';
+            if(type === 'posts') document.getElementById('posts-count').innerText = snap.size;
+            snap.forEach(d => {
+                const item = d.data();
+                const media = type === 'posts' ? (item.imageUrl || item.images?.[0]) : item.videoUrl;
+                grid.innerHTML += `<div class="grid-item" onclick="location.href='view-post.html?id=${d.id}'">${type === 'posts' ? `<img src="${media}">` : `<video src="${media}"></video>`}</div>`;
+            });
+        };
+
+        window.openEditModal = () => {
+            document.getElementById('edit-modal').style.display = 'flex';
+            document.getElementById('edit-name-input').value = userData.username || "";
+            document.getElementById('edit-note-input').value = userData.note || "";
+        };
+
+        window.saveProfileData = async () => {
+            const name = document.getElementById('edit-name-input').value;
+            const bio = document.getElementById('edit-note-input').value;
+            await updateDoc(doc(db, "users", auth.currentUser.uid), { username: name, note: bio });
+            await updateProfile(auth.currentUser, { displayName: name });
+            location.reload();
+        };
+
+        window.closeModal = (id) => document.getElementById(id).style.display = 'none';
+    </script>
+</body>
+</html>

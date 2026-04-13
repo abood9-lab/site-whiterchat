@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Whiterchat Legend | Pro Edition</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00ff88">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="icon" href="logo.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --neon: #00ff88; --bg: #01080b; --glass: rgba(10, 25, 30, 0.96); --border: rgba(0, 255, 136, 0.2); }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            background: var(--bg); color: white; height: 100vh; height: -webkit-fill-available;
+            display: flex; flex-direction: column; overflow: hidden; position: fixed; width: 100%;
+        }
+
+        /* Header */
+        header { padding: 15px; background: var(--glass); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; z-index: 1000; }
+        header img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--neon); object-fit: cover; }
+        .u-status { font-size: 12px; color: var(--neon); }
+
+        .dots { display: none; align-items: center; gap: 3px; margin-top: 5px; }
+        .dots span { width: 5px; height: 5px; background: var(--neon); border-radius: 50%; animation: d 1.4s infinite; }
+        @keyframes d { 0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1.2); opacity: 1; } }
+
+        /* Chat Area */
+        #chat-scroller { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; scroll-behavior: smooth; padding-bottom: 100px; }
+        .msg-box { max-width: 80%; display: flex; flex-direction: column; position: relative; }
+        .received { align-self: flex-start; } 
+        .sent { align-self: flex-end; }
+        
+        .bubble { padding: 12px; border-radius: 18px; font-size: 15px; position: relative; cursor: pointer; transition: 0.2s; word-wrap: break-word; }
+        .bubble:active { transform: scale(0.98); opacity: 0.8; }
+        .sent .bubble { background: linear-gradient(135deg, #00ff88, #00a86b); color: #000; border-bottom-right-radius: 4px; }
+        .received .bubble { background: #1a2429; color: #fff; border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+        
+        .seen { font-size: 10px; color: var(--neon); margin-top: 4px; align-self: flex-end; }
+
+        /* Giphy Panel */
+        #media-panel { position: fixed; bottom: 85px; left: 10px; right: 10px; height: 350px; background: var(--glass); border: 2px solid var(--neon); border-radius: 25px; display: none; flex-direction: column; z-index: 2000; overflow: hidden; backdrop-filter: blur(20px); }
+        .panel-tabs { display: flex; border-bottom: 1px solid var(--border); }
+        .tab-btn { flex: 1; padding: 12px; text-align: center; cursor: pointer; color: var(--neon); font-weight: bold; }
+        .tab-btn.active { background: var(--neon); color: #000; }
+        .grid-results { flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 10px; }
+        .grid-results img { width: 100%; height: 90px; object-fit: contain; cursor: pointer; }
+
+        /* Footer / Input Bar - STICKY FIX FOR MOBILE */
+        footer { 
+            padding: 10px 10px calc(15px + env(safe-area-inset-bottom)); 
+            background: var(--glass); 
+            border-top: 1px solid var(--border); 
+            position: fixed; bottom: 0; width: 100%; z-index: 1001; 
+        }
+        .in-wrap { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); border-radius: 25px; padding: 5px 12px; border: 1px solid rgba(255,255,255,0.1); }
+        #inp { flex: 1; background: none; border: none; color: #fff; padding: 12px 5px; outline: none; font-size: 16px; }
+        .btn { color: var(--neon); font-size: 22px; cursor: pointer; }
+
+        /* Context Menu */
+        #custom-menu { position: fixed; background: #0d171b; border: 1px solid var(--neon); border-radius: 15px; display: none; z-index: 5000; width: 180px; box-shadow: 0 0 20px rgba(0,255,136,0.3); }
+        .m-opt { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #222; font-size: 14px; display: flex; align-items: center; gap: 10px; }
+        .m-opt:last-child { border: none; }
+        .m-opt:hover { background: var(--neon); color: #000; }
+
+        .reply-box { display: none; background: rgba(0,255,136,0.1); padding: 8px; border-radius: 10px; margin-bottom: 8px; border-left: 3px solid var(--neon); position: relative; }
+        
+        /* Custom Toast Notification (Replaces Alert) */
+        #toast { position: fixed; top: -60px; left: 50%; transform: translateX(-50%); background: var(--neon); color: #000; padding: 10px 25px; border-radius: 50px; font-weight: bold; z-index: 9999; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 4px 15px rgba(0,255,136,0.4); }
+    </style>
+</head>
+<body>
+
+<div id="toast">Notice</div>
+
+<header>
+    <img id="f-img" src="logo.png">
+    <div style="flex:1">
+        <b id="f-name">Loading...</b><br>
+        <span id="f-stat" class="u-status">Online</span>
+        <div id="typing-ui" class="dots"><span></span><span></span><span></span></div>
+    </div>
+</header>
+
+<div id="chat-scroller"></div>
+
+<div id="media-panel">
+    <div class="panel-tabs">
+        <div class="tab-btn active" id="btn-gifs" onclick="switchTab('gifs')">GIFs</div>
+        <div class="tab-btn" id="btn-stickers" onclick="switchTab('stickers')">Stickers</div>
+        <div style="padding:10px; color: #fff;" onclick="toggleMediaPanel()"><i class="fa-solid fa-times"></i></div>
+    </div>
+    <div style="padding:10px;"><input type="text" id="m-search" placeholder="Search..." oninput="handleMediaSearch(this.value)" style="width:100%; padding:10px; border-radius:15px; border:1px solid var(--neon); background:#000; color:#fff; outline:none;"></div>
+    <div id="media-grid" class="grid-results"></div>
+</div>
+
+<footer>
+    <div id="reply-box-ui" class="reply-box">
+        <span id="reply-txt-disp" style="font-size:11px; color:var(--neon); display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; padding-right: 25px;"></span>
+        <i class="fa-solid fa-times" onclick="cancelReply()" style="position:absolute; right:10px; top:8px; cursor:pointer; color: #fff;"></i>
+    </div>
+    <div class="in-wrap">
+        <i class="fa-solid fa-circle-plus btn" onclick="document.getElementById('file-in').click()"></i>
+        <input type="file" id="file-in" hidden onchange="uploadFile(this.files[0])">
+        <i class="fa-regular fa-face-smile btn" onclick="toggleMediaPanel()"></i>
+        <input type="text" id="inp" placeholder="Type a message..." oninput="checkInp()" autocomplete="off">
+        <i id="mic-btn" class="fa-solid fa-microphone btn" onclick="handleMic()"></i>
+        <i id="send-btn" class="fa-solid fa-paper-plane btn" style="display:none;" onclick="sendMsg()"></i>
+    </div>
+</footer>
+
+<div id="custom-menu">
+    <div class="m-opt" onclick="initReply()"><i class="fa-solid fa-reply"></i> Reply</div>
+    <div class="m-opt" onclick="initCopy()"><i class="fa-solid fa-copy"></i> Copy</div>
+    <div class="m-opt mine" onclick="initEdit()"><i class="fa-solid fa-pen"></i> Edit</div>
+    <div class="m-opt mine" style="color:#ff4d4d" onclick="initDelete()"><i class="fa-solid fa-trash"></i> Delete</div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, doc, onSnapshot, collection, query, orderBy, addDoc, serverTimestamp, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const fbCfg = { apiKey: "AIzaSyBkjn1uIjzvmC4suZdA8bfYNO_fx5Hnj0s", projectId: "comments-5e3b5" };
+    const app = initializeApp(fbCfg); const db = getFirestore(app); const auth = getAuth(app);
+    const fId = new URLSearchParams(location.search).get("id");
+    let myId, chatId, activeId, activeTxt, isEdit=false, replyTxt=null, curTab='gifs', rec, chunks=[];
+
+    // Custom Toast instead of Alert
+    const showToast = (text) => {
+        const t = document.getElementById("toast"); t.innerText = text;
+        t.style.top = "20px"; setTimeout(() => t.style.top = "-60px", 2500);
+    };
+
+    onAuthStateChanged(auth, user => { 
+        if(user){ 
+            myId=user.uid; 
+            chatId=myId<fId?`${myId}_${fId}`:`${fId}_${myId}`; 
+            start(); 
+        }
+    });
+
+    function start() {
+        onSnapshot(doc(db, "users", fId), s => { 
+            const d=s.data(); 
+            if(d){ 
+                document.getElementById("f-name").innerText=d.username; 
+                document.getElementById("f-img").src=d.photoURL||"logo.png"; 
+            } 
+        });
+        
+        onSnapshot(doc(db, "chats", chatId), s => { 
+            const typing=s.data()?.typing?.[fId]; 
+            document.getElementById("typing-ui").style.display=typing?"flex":"none"; 
+            document.getElementById("f-stat").style.display=typing?"none":"block"; 
+        });
+
+        onSnapshot(query(collection(db, `chats/${chatId}/messages`), orderBy("createdAt", "asc")), snap => {
+            const box = document.getElementById("chat-scroller"); 
+            box.innerHTML = "";
+            snap.forEach(d => {
+                const m = d.data(); const isMe = m.senderId === myId;
+                if(!isMe && m.status !== "seen") updateDoc(doc(db, `chats/${chatId}/messages`, d.id), { status: "seen" });
+                
+                const div = document.createElement("div"); 
+                div.className = `msg-box ${isMe?'sent':'received'}`;
+                
+                let h = `<div class="bubble" onclick="openMenu(event,'${d.id}','${m.text}',${isMe})">`;
+                if(m.reply) h += `<small style="display:block; opacity:0.6; border-left:2px solid #00ff88; padding-left:5px; margin-bottom:5px;">Replying to: ${m.reply}</small>`;
+                
+                if(m.type==='text') h += m.text;
+                else if(m.type==='audio') h += `<audio controls src="${m.url}" style="width:210px; height:40px;"></audio>`;
+                else h += `<img src="${m.url}" style="width:100%; border-radius:15px; max-width: 250px;">`;
+                
+                h += `</div>`;
+                if(isMe && m.status==='seen') h += `<span class="seen">Seen <i class="fa-solid fa-check-double"></i></span>`;
+                
+                div.innerHTML = h; box.appendChild(div);
+            });
+            box.scrollTop = box.scrollHeight;
+        });
+    }
+
+    window.openMenu = (e, id, txt, isMe) => {
+        e.preventDefault(); activeId=id; activeTxt=txt;
+        const m = document.getElementById("custom-menu"); 
+        m.style.display="block";
+        m.style.top = Math.min(e.clientY, window.innerHeight-180) + "px";
+        m.style.left = Math.min(e.clientX, window.innerWidth-190) + "px";
+        document.querySelectorAll(".mine").forEach(el => el.style.display = isMe ? "flex" : "none");
+    };
+
+    window.initReply = () => { replyTxt=activeTxt; document.getElementById("reply-box-ui").style.display="block"; document.getElementById("reply-txt-disp").innerText=activeTxt; hideMenu(); };
+    window.initCopy = () => { navigator.clipboard.writeText(activeTxt); showToast("Text Copied"); hideMenu(); };
+    window.initEdit = () => { isEdit=true; document.getElementById("inp").value=activeTxt; checkInp(); hideMenu(); document.getElementById("inp").focus(); };
+    window.initDelete = async () => { await deleteDoc(doc(db, `chats/${chatId}/messages`, activeId)); showToast("Deleted"); hideMenu(); };
+    window.cancelReply = () => { replyTxt=null; document.getElementById("reply-box-ui").style.display="none"; };
+    window.hideMenu = () => document.getElementById("custom-menu").style.display="none";
+
+    window.sendMsg = async () => {
+        const i = document.getElementById("inp"); if(!i.value.trim()) return;
+        if(isEdit) { 
+            await updateDoc(doc(db, `chats/${chatId}/messages`, activeId), { text: i.value }); 
+            isEdit=false; 
+            showToast("Message Edited");
+        } else { 
+            await addDoc(collection(db, `chats/${chatId}/messages`), { senderId: myId, text: i.value, type: "text", reply: replyTxt, status: "sent", createdAt: serverTimestamp() }); 
+        }
+        i.value=""; cancelReply(); checkInp();
+    };
+
+    window.uploadFile = async (f) => {
+        if(!f) return; showToast("Sending Media...");
+        const fd = new FormData(); fd.append("file", f); fd.append("upload_preset", "p7zmt8yv");
+        const res = await fetch("https://api.cloudinary.com/v1_1/d96646/upload", {method:"POST", body:fd});
+        const d = await res.json();
+        await addDoc(collection(db, `chats/${chatId}/messages`), { senderId: myId, type: f.type.split('/')[0], url: d.secure_url, status: "sent", createdAt: serverTimestamp() });
+    };
+
+    window.handleMic = async () => {
+        if(!rec) {
+            try {
+                const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+                rec = new MediaRecorder(s); rec.ondataavailable = e => chunks.push(e.data);
+                rec.onstop = async () => {
+                    showToast("Sending Audio...");
+                    const fd = new FormData(); fd.append("file", new Blob(chunks), "voice.mp3"); fd.append("upload_preset", "p7zmt8yv");
+                    const res = await fetch("https://api.cloudinary.com/v1_1/d96646/upload", {method:"POST", body:fd});
+                    const d = await res.json();
+                    await addDoc(collection(db, `chats/${chatId}/messages`), { senderId: myId, type: 'audio', url: d.secure_url, status: "sent", createdAt: serverTimestamp() });
+                    chunks=[];
+                };
+            } catch(e) { showToast("Microphone Error"); return; }
+        }
+        if(rec.state==='inactive'){ rec.start(); document.getElementById("mic-btn").style.color="red"; }
+        else { rec.stop(); document.getElementById("mic-btn").style.color="var(--neon)"; }
+    };
+
+    window.toggleMediaPanel = () => { const p=document.getElementById("media-panel"); p.style.display=p.style.display==='flex'?'none':'flex'; if(p.style.display==='flex') handleMediaSearch("trending"); };
+    window.switchTab = (t) => { curTab=t; document.getElementById("btn-gifs").classList.toggle("active", t==='gifs'); document.getElementById("btn-stickers").classList.toggle("active", t==='stickers'); handleMediaSearch("trending"); };
+    window.handleMediaSearch = async (q) => {
+        const res = await fetch(`https://api.giphy.com/v1/${curTab==='gifs'?'gifs':'stickers'}/search?api_key=bO9MmeUTiAT6mZxTlFs3fW43viwtwo6Y&q=${q||'trending'}&limit=12`);
+        const {data} = await res.json(); const g = document.getElementById("media-grid"); g.innerHTML="";
+        data.forEach(i => {
+            const img=document.createElement("img"); img.src=i.images.fixed_height_small.url;
+            img.onclick = async () => { 
+                await addDoc(collection(db, `chats/${chatId}/messages`), { senderId: myId, type: curTab==='gifs'?'gif':'sticker', url: i.images.fixed_height.url, status: "sent", createdAt: serverTimestamp() }); 
+                toggleMediaPanel(); 
+            };
+            g.appendChild(img);
+        });
+    };
+
+    window.checkInp = () => {
+        const v = document.getElementById("inp").value;
+        document.getElementById("send-btn").style.display = v ? "block" : "none";
+        document.getElementById("mic-btn").style.display = v ? "none" : "block";
+        updateDoc(doc(db, "chats", chatId), { [`typing.${myId}`]: !!v });
+    };
+
+    document.addEventListener("click", (e) => { 
+        if(!e.target.closest('.bubble') && !e.target.closest('#custom-menu')) hideMenu(); 
+    });
+
+    // Mobile Keyboard Visibility Fix
+    document.getElementById("inp").addEventListener("focus", () => {
+        setTimeout(() => { document.getElementById("chat-scroller").scrollTop = document.getElementById("chat-scroller").scrollHeight; }, 300);
+    });
+</script>
+</body>
+</html>

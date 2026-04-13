@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ar" id="htmlRoot">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Terms of Service | Abdulrahman Al-Muflih</title>
+    <style>
+        :root {
+            --accent: #00ff88;
+            --bg-dark: #000000;
+            --glass: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(0, 255, 136, 0.2);
+            --text-p: #ffffff;
+            --text-s: #888888;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; scroll-behavior: smooth; }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-p);
+            margin: 0;
+            font-family: 'Inter', -apple-system, system-ui, sans-serif;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 0% 0%, rgba(0, 255, 136, 0.1) 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(0, 255, 136, 0.1) 0%, transparent 40%);
+        }
+
+        /* Header */
+        header {
+            position: fixed; top: 0; width: 100%; height: 80px;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 40px; border-bottom: 1px solid var(--glass-border); z-index: 1000;
+        }
+
+        .logo-text { font-size: 24px; font-weight: 900; color: var(--accent); letter-spacing: 2px; text-transform: uppercase; }
+        .owner-tag { font-size: 10px; color: var(--text-s); margin-top: -5px; }
+
+        .lang-toggle {
+            background: rgba(0, 255, 136, 0.1); color: var(--accent);
+            border: 1px solid var(--accent); padding: 10px 25px; border-radius: 50px;
+            font-weight: 800; cursor: pointer; font-size: 12px;
+        }
+
+        /* Main Content */
+        .wrapper { max-width: 1000px; margin: 140px auto 100px; padding: 0 25px; }
+
+        .hero-section { text-align: center; margin-bottom: 60px; }
+        .hero-section h1 { font-size: clamp(32px, 8vw, 55px); font-weight: 900; margin: 0; background: linear-gradient(to bottom, #fff, #666); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        /* Terms Grid */
+        .terms-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+
+        .term-card {
+            background: var(--glass); border: 1px solid var(--glass-border);
+            padding: 40px; border-radius: 35px; transition: 0.4s;
+            position: relative; overflow: hidden;
+        }
+        .term-card:hover { transform: translateY(-10px); background: rgba(255, 255, 255, 0.05); border-color: var(--accent); }
+
+        .term-card h3 { font-size: 22px; color: var(--accent); margin-bottom: 15px; }
+        .term-card p { color: var(--text-s); line-height: 1.8; font-size: 15px; }
+
+        /* قسم التوظيف المحدث */
+        .careers-cta {
+            margin-top: 60px; padding: 50px; border-radius: 40px;
+            background: linear-gradient(135deg, rgba(0,255,136,0.05) 0%, transparent 100%);
+            border: 1px solid var(--glass-border); text-align: center;
+        }
+        .careers-cta h2 { font-size: 32px; margin-bottom: 15px; }
+        
+        .apply-page-btn {
+            display: inline-block; margin-top: 25px;
+            background: var(--accent); color: #000; padding: 18px 45px;
+            border-radius: 50px; text-decoration: none; font-weight: 900; 
+            font-size: 16px; box-shadow: 0 10px 30px rgba(0, 255, 136, 0.3);
+            transition: 0.3s;
+        }
+        .apply-page-btn:hover { transform: scale(1.05); box-shadow: 0 15px 40px rgba(0, 255, 136, 0.5); }
+
+        footer { padding: 60px 20px; text-align: center; border-top: 1px solid #111; }
+        .footer-logo { font-size: 18px; font-weight: bold; color: var(--accent); }
+
+        @media (max-width: 600px) {
+            header { padding: 0 20px; }
+            .wrapper { margin-top: 110px; }
+            .careers-cta { padding: 40px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div>
+        <div class="logo-text">Whiterchat</div>
+        <div class="owner-tag" id="ownerSub"></div>
+    </div>
+    <button class="lang-toggle" onclick="toggleLang()" id="lBtn">English</button>
+</header>
+
+<div class="wrapper">
+    <div class="hero-section">
+        <h1 id="mainTitle"></h1>
+        <p style="color: var(--accent); font-weight: 600; margin-top: 10px;" id="heroSub"></p>
+    </div>
+
+    <div class="terms-grid">
+        <div class="term-card">
+            <h3 id="t1h"></h3>
+            <p id="t1p"></p>
+        </div>
+        <div class="term-card">
+            <h3 id="t2h"></h3>
+            <p id="t2p"></p>
+        </div>
+        <div class="term-card">
+            <h3 id="t3h"></h3>
+            <p id="t3p"></p>
+        </div>
+        <div class="term-card">
+            <h3 id="t4h"></h3>
+            <p id="t4p"></p>
+        </div>
+    </div>
+
+    <div class="careers-cta">
+        <h2 id="jobT"></h2>
+        <p id="jobD" style="color: var(--text-s); max-width: 600px; margin: 0 auto;"></p>
+        <a href="/careers" class="apply-page-btn" id="jobBtn"></a>
+    </div>
+</div>
+
+<footer>
+    <div class="footer-logo">Abdulrahman Al-Muflih</div>
+    <p style="color: #444; font-size: 12px; margin-top: 10px;" id="copy"></p>
+</footer>
+
+<script>
+    const content = {
+        ar: {
+            btn: "English",
+            owner: "بواسطة المالك: عبد الرحمن المفلح",
+            title: "شروط الخدمة",
+            hero: "اتفاقية الاستخدام الرسمية لوايت تشات",
+            t1h: "الموافقة والشروط", t1p: "باستخدامك لهذه المنصة، أنت توافق على كافة البنود القانونية التي وضعها المطور عبد الرحمن المفلح لضمان بيئة تواصل آمنة واحترافية.",
+            t2h: "حقوق الملكية", t2p: "جميع الأكواد المصدرية، التصاميم، والشعارات في Whiterchat هي ملكية حصرية للمالك عبد الرحمن المفلح، ويمنع اقتباسها أو نسخها.",
+            t3h: "المسؤولية القانونية", t3p: "أنت المسؤول الأول عن المحتوى الذي تشاركه. نحن نطبق قوانين صارمة ضد أي محتوى يخالف معايير المجتمع أو يضر بالآخرين.",
+            t4h: "تحديث الاتفاقية", t4p: "نحتفظ بالحق في تحديث هذه الشروط بشكل دوري لتناسب التطورات التقنية في المنصة، وسيتم إخطار المستخدمين عند أي تغيير جوهري.",
+            jobT: "انضم إلى المبدعين",
+            jobD: "نبحث عن مطورين ومصممين للانضمام إلى فريق عبد الرحمن المفلح. هل تمتلك المهارة الكافية؟",
+            jobBtn: "انتقل لصفحة التوظيف",
+            copy: "جميع الحقوق محفوظة لمنصة وايت تشات © 2026"
+        },
+        en: {
+            btn: "العربية",
+            owner: "By Owner: Abdulrahman Al-Muflih",
+            title: "Terms of Service",
+            hero: "Official User Agreement for Whiterchat",
+            t1h: "Terms & Acceptance", t1p: "By using this platform, you agree to all legal terms set by developer Abdulrahman Al-Muflih to ensure a secure and professional environment.",
+            t2h: "Ownership Rights", t2p: "All source codes, designs, and logos in Whiterchat are the exclusive property of Abdulrahman Al-Muflih and may not be copied.",
+            t3h: "Legal Liability", t3p: "You are solely responsible for the content you share. We enforce strict rules against any content that violates community standards.",
+            t4h: "Agreement Updates", t4p: "We reserve the right to update these terms periodically to match technical developments, and users will be notified of major changes.",
+            jobT: "Join the Creators",
+            jobD: "We are looking for developers and designers to join Abdulrahman Al-Muflih's team. Do you have the skills?",
+            jobBtn: "Go to Careers Page",
+            copy: "Whiterchat Platform | All Rights Reserved © 2026"
+        }
+    };
+
+    let currentLang = navigator.language.startsWith('ar') ? 'ar' : 'en';
+
+    function render() {
+        const t = content[currentLang];
+        document.getElementById('htmlRoot').dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+        document.getElementById('lBtn').innerText = t.btn;
+        document.getElementById('ownerSub').innerText = t.owner;
+        document.getElementById('mainTitle').innerText = t.title;
+        document.getElementById('heroSub').innerText = t.hero;
+        document.getElementById('t1h').innerText = t.t1h; document.getElementById('t1p').innerText = t.t1p;
+        document.getElementById('t2h').innerText = t.t2h; document.getElementById('t2p').innerText = t.t2p;
+        document.getElementById('t3h').innerText = t.t3h; document.getElementById('t3p').innerText = t.t3p;
+        document.getElementById('t4h').innerText = t.t4h; document.getElementById('t4p').innerText = t.t4p;
+        document.getElementById('jobT').innerText = t.jobT;
+        document.getElementById('jobD').innerText = t.jobD;
+        document.getElementById('jobBtn').innerText = t.jobBtn;
+        document.getElementById('copy').innerText = t.copy;
+    }
+
+    function toggleLang() {
+        currentLang = currentLang === 'ar' ? 'en' : 'ar';
+        render();
+    }
+
+    render();
+</script>
+</body>
+</html>

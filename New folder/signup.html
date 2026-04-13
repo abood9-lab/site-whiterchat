@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html id="html-tag" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Whiterchat | Secure Portal</title>
+    
+    <style>
+        :root { --neon: #00ff88; --dark: #020202; --card-bg: rgba(255, 255, 255, 0.04); --error: #ff4d4d; --gray: #8e8e8e; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body { background: var(--dark); color: white; font-family: -apple-system, system-ui, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; overflow-x: hidden; }
+        
+        /* الكرت الرئيسي */
+        .card { width: 100%; max-width: 400px; padding: 40px 25px; background: var(--card-bg); border: 1px solid rgba(0, 255, 136, 0.15); border-radius: 32px; backdrop-filter: blur(25px); text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.5); position: relative; }
+        h2 { color: var(--neon); margin-bottom: 30px; font-size: 32px; font-weight: 900; letter-spacing: -1px; }
+        
+        .input-group { position: relative; margin-bottom: 15px; }
+        input { width: 100%; padding: 16px; background: rgba(0,0,0,0.6); border: 1px solid #222; border-radius: 16px; color: white; font-size: 16px; transition: 0.3s; border-left: 4px solid transparent; }
+        input:focus { border-color: var(--neon); background: #000; border-left: 4px solid var(--neon); }
+        
+        .status-hint { font-size: 11px; margin-top: 5px; height: 14px; font-weight: 600; }
+        .btn { width: 100%; padding: 18px; background: var(--neon); color: #000; border: none; border-radius: 16px; font-weight: 800; cursor: pointer; font-size: 17px; margin-top: 15px; transition: 0.3s; }
+        .btn:disabled { background: #1a1a1a !important; color: #444 !important; cursor: not-allowed; }
+        
+        /* نظام الإشعارات Toasts */
+        #toast-container { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10000; width: 90%; max-width: 350px; }
+        .toast { background: #1a1a1a; color: white; padding: 15px 20px; border-radius: 12px; margin-bottom: 10px; border-left: 4px solid var(--neon); box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; animation: slideDown 0.4s ease forwards; font-size: 14px; text-align: center; }
+        .toast.error { border-left-color: var(--error); }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* نافذة الـ OTP */
+        #otp-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.98); z-index: 9999; align-items: center; justify-content: center; backdrop-filter: blur(10px); }
+        .resend-link { display: none; color: var(--neon); font-size: 13px; margin-top: 15px; background: none; border: none; cursor: pointer; text-decoration: underline; font-weight: bold; }
+        
+        .footer-links { margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 25px; }
+        .legal-text { font-size: 12px; color: var(--gray); line-height: 1.6; margin-bottom: 15px; }
+        .legal-text a { color: var(--neon); text-decoration: none; font-weight: bold; }
+        .toggle-btn { background: none; border: none; color: #fff; font-size: 14px; cursor: pointer; padding: 10px; }
+        
+        [dir="rtl"] .input-group { text-align: right; }
+        [dir="ltr"] .input-group { text-align: left; }
+    </style>
+</head>
+<body>
+
+<div id="toast-container"></div>
+
+<div class="card">
+    <h2 id="ui-title">Whiterchat</h2>
+    
+    <div class="input-group">
+        <input type="text" id="fullname">
+        <div id="name-hint" class="status-hint"></div>
+    </div>
+
+    <div class="input-group">
+        <input type="text" id="username">
+        <div id="user-hint" class="status-hint"></div>
+    </div>
+
+    <div class="input-group">
+        <input type="email" id="email">
+        <div id="email-hint" class="status-hint"></div>
+    </div>
+
+    <div class="input-group">
+        <input type="password" id="password">
+    </div>
+
+    <button class="btn" id="signupBtn" disabled></button>
+
+    <div class="footer-links">
+        <div class="legal-text" id="ui-legal"></div>
+        <button class="toggle-btn" id="ui-login-btn"></button>
+    </div>
+</div>
+
+<div id="otp-modal">
+    <div class="card" style="max-width:340px;">
+        <h3 id="ui-otp-title"></h3>
+        <p id="ui-otp-sub" style="font-size:12px; color:var(--gray); margin-bottom:20px;"></p>
+        <input type="text" id="otp-input" maxlength="6" inputmode="numeric" style="text-align:center; font-size:32px; letter-spacing:10px; font-weight:bold; color:var(--neon); background:#000;">
+        <button class="btn" id="verifyBtn"></button>
+        <div id="cooldown-text" style="font-size:11px; color:var(--error); margin-top:15px;"></div>
+        <button id="resendBtn" class="resend-link"></button>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, createUserWithEmailAndPassword, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    const firebaseConfig = { 
+        apiKey: "AIzaSyBkjn1uIjzvmC4suZdA8bfYNO_fx5Hnj0s", 
+        authDomain: "comments-5e3b5.firebaseapp.com", 
+        projectId: "comments-5e3b5", 
+        storageBucket: "comments-5e3b5.firebasestorage.app", 
+        messagingSenderId: "907122259758", 
+        appId: "1:907122259758:web:7819cab50ebd74dd912cbf" 
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const translations = {
+        ar: { title: "إنشاء حساب", name: "الاسم الكامل", user: "اسم المستخدم", mail: "البريد الإلكتروني", pass: "كلمة المرور (8+ حروف)", signup: "إرسال كود التحقق", legal: 'بالتسجيل، أنت توافق على <a href="terms.html">شروط الاستخدام</a> و <a href="privacy.html">سياسة الخصوصية</a> الخاصة بنا.', login: 'لديك حساب بالفعل؟ <b>سجل دخول</b>', otp_t: "تأكيد الهوية", otp_s: "أدخل الكود المرسل لبريدك (صالح لـ 5 دقائق)", verify: "تفعيل الحساب", err_user: "اسم المستخدم محجوز ❌", ok_user: "اسم المستخدم متاح ✅", err_otp: "الكود خاطئ أو منتهي الصلاحية", wait: "يرجى الانتظار: ", resend: "لم يصلني الكود؟ إعادة الإرسال", sent_ok: "تم إرسال الرمز بنجاح ✅", fail_send: "فشل الإرسال، حاول لاحقاً ❌" },
+        en: { title: "Sign Up", name: "Full Name", user: "Username", mail: "Email", pass: "Password (8+ chars)", signup: "Send Code", legal: 'By signing up, you agree to our <a href="terms.html">Terms</a> & <a href="privacy.html">Privacy Policy</a> & <a href="about.html">about</a>.', login: 'Already have an account? <b>Log In</b>', otp_t: "Verify Identity", otp_s: "Enter code from email (5m)", verify: "Activate", err_user: "Taken ❌", ok_user: "Available ✅", err_otp: "Invalid code", wait: "Wait: ", resend: "Resend Code", sent_ok: "Code sent successfully ✅", fail_send: "Failed to send ❌" }
+    };
+
+    const userLang = navigator.language.startsWith('en') ? 'en' : 'ar';
+    const t = translations[userLang];
+    document.body.dir = userLang === 'ar' ? 'rtl' : 'ltr';
+    
+    document.getElementById('fullname').placeholder = t.name;
+    document.getElementById('username').placeholder = t.user;
+    document.getElementById('email').placeholder = t.mail;
+    document.getElementById('password').placeholder = t.pass;
+    document.getElementById('signupBtn').innerText = t.signup;
+    document.getElementById('ui-legal').innerHTML = t.legal;
+    document.getElementById('ui-login-btn').innerHTML = t.login;
+    document.getElementById('ui-otp-title').innerText = t.otp_t;
+    document.getElementById('ui-otp-sub').innerText = t.otp_s;
+    document.getElementById('verifyBtn').innerText = t.verify;
+    document.getElementById('resendBtn').innerText = t.resend;
+
+    // تفعيل الانتقال لصفحة تسجيل الدخول
+    document.getElementById('ui-login-btn').addEventListener('click', () => {
+        window.location.href = "login.html";
+    });
+
+    function showToast(msg, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type === 'error' ? 'error' : ''}`;
+        toast.innerText = msg;
+        container.appendChild(toast);
+        setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = '0.5s'; }, 2500);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    let isUserValid = false;
+    let cooldownActive = false;
+
+    const validateFields = () => {
+        const name = document.getElementById('fullname').value.trim();
+        const mail = document.getElementById('email').value.trim();
+        const pass = document.getElementById('password').value;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        document.getElementById('signupBtn').disabled = !(name.length >= 3 && isUserValid && emailRegex.test(mail) && pass.length >= 8 && !cooldownActive);
+    };
+
+    document.getElementById('username').addEventListener('input', async (e) => {
+        let val = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+        e.target.value = val;
+        if(val.length < 3) { isUserValid = false; return; }
+        const q = query(collection(db, "users"), where("username", "==", val));
+        const snap = await getDocs(q);
+        isUserValid = snap.empty;
+        const hint = document.getElementById('user-hint');
+        hint.innerText = isUserValid ? t.ok_user : t.err_user;
+        hint.style.color = isUserValid ? "var(--neon)" : "var(--error)";
+        validateFields();
+    });
+
+    ['fullname', 'email', 'password'].forEach(id => document.getElementById(id).addEventListener('input', validateFields));
+
+    const triggerEmailSend = async () => {
+        const email = document.getElementById('email').value.trim();
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        
+        const payload = {
+            service_id: 'service_51cc49c',
+            template_id: 'template_j7epq4q',
+            user_id: 'mavpiHbGoq6KszVnP',
+            template_params: { email, passcode: otp }
+        };
+
+        try {
+            const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                await setDoc(doc(db, "otp_temp", email), {
+                    code: otp,
+                    user: document.getElementById('username').value,
+                    name: document.getElementById('fullname').value,
+                    expiresAt: Date.now() + (5 * 60 * 1000)
+                });
+                document.getElementById('otp-modal').style.display = 'flex';
+                document.getElementById('resendBtn').style.display = 'none';
+                startCooldown(60);
+                showToast(t.sent_ok);
+            } else { throw new Error(); }
+        } catch (err) {
+            showToast(t.fail_send, 'error');
+            cooldownActive = false;
+            validateFields();
+        }
+    };
+
+    document.getElementById('signupBtn').addEventListener('click', () => {
+        const pass = document.getElementById('password').value;
+        sessionStorage.setItem('_u_secure_p', btoa(pass));
+        cooldownActive = true;
+        validateFields();
+        triggerEmailSend();
+    });
+
+    document.getElementById('resendBtn').addEventListener('click', triggerEmailSend);
+
+    function startCooldown(seconds) {
+        let timeLeft = seconds;
+        const timer = setInterval(() => {
+            timeLeft--;
+            document.getElementById('cooldown-text').innerText = t.wait + timeLeft + "s";
+            if(timeLeft <= 0) {
+                clearInterval(timer);
+                document.getElementById('cooldown-text').innerText = "";
+                document.getElementById('resendBtn').style.display = 'inline-block';
+                cooldownActive = false;
+                validateFields();
+            }
+        }, 1000);
+    }
+
+    document.getElementById('verifyBtn').addEventListener('click', async () => {
+        const email = document.getElementById('email').value.trim();
+        const code = document.getElementById('otp-input').value;
+        const snap = await getDoc(doc(db, "otp_temp", email));
+
+        if(snap.exists()) {
+            const data = snap.data();
+            if(data.code === code && Date.now() < data.expiresAt) {
+                try {
+                    const pass = atob(sessionStorage.getItem('_u_secure_p'));
+                    const userCred = await createUserWithEmailAndPassword(auth, email, pass);
+                    await updateProfile(userCred.user, { displayName: data.name });
+                    await setDoc(doc(db, "users", userCred.user.uid), {
+                        uid: userCred.user.uid, username: data.user, fullname: data.name, email, createdAt: new Date()
+                    });
+                    sessionStorage.removeItem('_u_secure_p');
+                    window.location.href = "welcome.html";
+                } catch(e) { showToast(e.message, 'error'); }
+            } else { showToast(t.err_otp, 'error'); }
+        }
+    });
+</script>
+</body>
+</html>

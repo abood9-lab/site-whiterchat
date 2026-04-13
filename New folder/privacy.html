@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ar" id="mainHtml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Privacy & Careers | Abdulrahman Al-Muflih</title>
+    
+    <style>
+        :root {
+            --neon: #00ff88;
+            --bg: #000000;
+            --card: #0a0a0a;
+            --text: #ffffff;
+            --dim: #777;
+            --border: rgba(0, 255, 136, 0.1);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0; padding-bottom: 80px; /* مساحة للقائمة السفلية في الموبايل */
+        }
+
+        /* هيدر ثابت */
+        header {
+            position: fixed; top: 0; width: 100%; height: 70px;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(20px);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 20px; border-bottom: 1px solid var(--border); z-index: 1000;
+        }
+
+        .logo { color: var(--neon); font-weight: 900; font-size: 1.2rem; }
+
+        .lang-btn {
+            background: var(--neon); color: #000; border: none;
+            padding: 6px 15px; border-radius: 10px; font-weight: bold; cursor: pointer;
+        }
+
+        /* التبويبات - متجاوبة */
+        .nav-scroller {
+            position: fixed; top: 70px; width: 100%; background: #050505;
+            display: flex; overflow-x: auto; padding: 10px; gap: 8px;
+            border-bottom: 1px solid #111; z-index: 999;
+            scrollbar-width: none; /* إخفاء السكرول في فيرفوكس */
+        }
+        .nav-scroller::-webkit-scrollbar { display: none; } /* إخفاء السكرول في كروم */
+
+        .tab {
+            padding: 8px 18px; border-radius: 50px; background: #111;
+            color: var(--dim); cursor: pointer; font-size: 13px; white-space: nowrap;
+            border: 1px solid transparent;
+        }
+        .tab.active { background: var(--neon); color: #000; font-weight: bold; }
+
+        /* منطقة المحتوى */
+        main { max-width: 800px; margin: 150px auto 30px; padding: 0 20px; }
+
+        .panel { display: none; animation: fadeIn 0.4s ease; }
+        .panel.active { display: block; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; } }
+
+        .card {
+            background: var(--card); border: 1px solid #1a1a1a;
+            padding: 25px; border-radius: 20px; margin-bottom: 20px;
+        }
+        h1 { font-size: 28px; margin-bottom: 20px; text-align: center; }
+        h3 { color: var(--neon); margin-top: 0; }
+        p { color: #aaa; line-height: 1.6; font-size: 15px; }
+
+        /* زر التواصل */
+        .contact-btn {
+            display: block; width: 100%; text-align: center;
+            background: #111; color: var(--neon); padding: 15px;
+            border-radius: 15px; text-decoration: none; font-weight: bold;
+            border: 1px solid var(--neon); margin-top: 20px;
+        }
+
+        /* الفوتر الاحترافي */
+        footer {
+            text-align: center; padding: 40px 20px; background: #050505;
+            border-top: 1px solid #111;
+        }
+        .owner-tag { color: var(--neon); font-weight: bold; font-size: 14px; }
+
+        /* تحسينات الآيفون والموبايل */
+        @media (max-width: 600px) {
+            h1 { font-size: 22px; }
+            .card { padding: 20px; }
+            .nav-scroller { justify-content: flex-start; padding-left: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">WHITERCHAT</div>
+    <button class="lang-btn" onclick="toggleLang()" id="lBtn">English</button>
+</header>
+
+<nav class="nav-scroller">
+    <div class="tab active" onclick="showPanel('privacy', this)" id="nb1"></div>
+    <div class="tab" onclick="showPanel('security', this)" id="nb2"></div>
+    <div class="tab" onclick="showPanel('jobs', this)" id="nb3"></div>
+    <div class="tab" onclick="showPanel('owner', this)" id="nb4"></div>
+</nav>
+
+<main>
+    <div id="privacy" class="panel active">
+        <h1 id="h1"></h1>
+        <div class="card"><h3 id="t1"></h3><p id="d1"></p></div>
+        <div class="card"><h3 id="t2"></h3><p id="d2"></p></div>
+    </div>
+
+    <div id="security" class="panel">
+        <h1 id="h2"></h1>
+        <div class="card"><h3 id="t3"></h3><p id="d3"></p></div>
+        <div class="card"><h3 id="t4"></h3><p id="d4"></p></div>
+    </div>
+
+    <div id="jobs" class="panel">
+        <h1 id="h3"></h1>
+        <div class="card">
+            <h3 id="t5"></h3>
+            <p id="d5"></p>
+            <a href="mailto:abdalrhmanalmefleh474@gmail.com" class="contact-btn" id="cBtn"></a>
+        </div>
+    </div>
+
+    <div id="owner" class="panel">
+        <h1 id="h4"></h1>
+        <div class="card" style="text-align: center;">
+            <h2 id="ownerName" style="color: var(--neon);"></h2>
+            <p id="ownerBio"></p>
+            <p style="color: var(--neon); font-size: 13px;">abdalrhmanalmefleh474@gmail.com</p>
+        </div>
+    </div>
+</main>
+
+<footer>
+    <div class="owner-tag" id="fTag"></div>
+</footer>
+
+<script>
+    const translations = {
+        ar: {
+            btn: "English",
+            tabs: ["الخصوصية", "الأمان", "الوظائف", "المالك"],
+            h1: "سياسة الخصوصية", t1: "حماية البيانات", d1: "نحن نلتزم بحماية كافة بياناتك الشخصية وتشفيرها بالكامل لضمان سرية معلوماتك داخل المنصة.",
+            t2: "جمع المعلومات", d2: "نجمع فقط ما يلزم لتحسين تجربتك، ولا نشارك أي بيانات مع أطراف خارجية دون إذنك.",
+            h2: "أنظمة الأمان", t3: "التشفير العسكري", d3: "جميع المراسلات والبيانات محمية بتشفير AES-256 المتطور.",
+            t4: "الرقابة التقنية", d4: "تتم مراقبة الخوادم على مدار الساعة من قبل عبد الرحمن المفلح لمنع أي اختراقات.",
+            h3: "فرص العمل", t5: "انضم إلى فريقنا", d5: "نبحث دائماً عن المبدعين في مجال البرمجة والتصميم. إذا كنت ترى نفسك كفؤاً، أرسل سيرتك الذاتية إلينا.",
+            cBtn: "تواصل معنا عبر الإيميل",
+            h4: "مطور المنصة", owner_n: "عبد الرحمن المفلح", owner_b: "المؤسس والمالك والمطور الرئيسي لمنصة Whiterchat، خبير في بناء الأنظمة الآمنة والمتطورة.",
+            fTag: "حقوق الملكية محفوظة لـ عبد الرحمن المفلح © 2026"
+        },
+        en: {
+            btn: "العربية",
+            tabs: ["Privacy", "Security", "Careers", "Owner"],
+            h1: "Privacy Policy", t1: "Data Protection", d1: "We are committed to protecting all your personal data and encrypting it completely to ensure confidentiality.",
+            t2: "Data Collection", d2: "We only collect what is necessary to improve your experience and never share data without permission.",
+            h2: "Security Systems", t3: "Military Encryption", d3: "All communications and data are protected by advanced AES-256 encryption.",
+            t4: "Technical Oversight", d4: "Servers are monitored 24/7 by Abdulrahman Al-Muflih to prevent any breaches.",
+            h3: "Career Opportunities", t5: "Join Our Team", d5: "We are always looking for creative programmers and designers. If you are qualified, send us your CV.",
+            cBtn: "Contact us via Email",
+            h4: "Platform Developer", owner_n: "Abdulrahman Al-Muflih", owner_b: "Founder, Owner, and Lead Developer of Whiterchat, expert in building secure systems.",
+            fTag: "Copyright Reserved to Abdulrahman Al-Muflih © 2026"
+        }
+    };
+
+    let currentLang = navigator.language.startsWith('ar') ? 'ar' : 'en';
+
+    function updateUI() {
+        const t = translations[currentLang];
+        document.getElementById('mainHtml').dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+        document.getElementById('lBtn').innerText = t.btn;
+        document.getElementById('nb1').innerText = t.tabs[0];
+        document.getElementById('nb2').innerText = t.tabs[1];
+        document.getElementById('nb3').innerText = t.tabs[2];
+        document.getElementById('nb4').innerText = t.tabs[3];
+        document.getElementById('h1').innerText = t.h1; document.getElementById('t1').innerText = t.t1; document.getElementById('d1').innerText = t.d1;
+        document.getElementById('t2').innerText = t.t2; document.getElementById('d2').innerText = t.d2;
+        document.getElementById('h2').innerText = t.h2; document.getElementById('t3').innerText = t.t3; document.getElementById('d3').innerText = t.d3;
+        document.getElementById('t4').innerText = t.t4; document.getElementById('d4').innerText = t.d4;
+        document.getElementById('h3').innerText = t.h3; document.getElementById('t5').innerText = t.t5; document.getElementById('d5').innerText = t.d5;
+        document.getElementById('cBtn').innerText = t.cBtn;
+        document.getElementById('h4').innerText = t.h4;
+        document.getElementById('ownerName').innerText = t.owner_n;
+        document.getElementById('ownerBio').innerText = t.owner_b;
+        document.getElementById('fTag').innerText = t.fTag;
+    }
+
+    function toggleLang() {
+        currentLang = currentLang === 'ar' ? 'en' : 'ar';
+        updateUI();
+    }
+
+    function showPanel(id, el) {
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        el.classList.add('active');
+    }
+
+    updateUI();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Whiterchat | Create Post</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#00ff88">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --neon: #00ff88; --bg: #020b10; --glass: rgba(10, 25, 30, 0.85); --error: #ff4757; }
+        body { background: var(--bg); color: #fff; font-family: 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .main-card { width: 100%; max-width: 450px; background: var(--glass); backdrop-filter: blur(20px); border: 1.5px solid rgba(0, 255, 136, 0.2); border-radius: 30px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .text-box { background: rgba(0, 0, 0, 0.4); border-radius: 18px; padding: 15px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.05); }
+        textarea { width: 100%; background: transparent; border: none; color: #fff; resize: none; outline: none; text-align: left; font-size: 16px; }
+        .drop-zone { border: 2px dashed var(--neon); border-radius: 20px; padding: 20px; cursor: pointer; margin-bottom: 15px; transition: 0.3s; text-align: center; }
+        .drop-zone:hover { background: rgba(0, 255, 136, 0.05); }
+        .gallery-wrapper { display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; scrollbar-width: none; }
+        .preview-card { position: relative; min-width: 90px; height: 90px; border-radius: 12px; border: 1px solid var(--neon); overflow: hidden; }
+        .preview-card img, .preview-card video { width: 100%; height: 100%; object-fit: cover; }
+        .remove-btn { position: absolute; top: 2px; right: 2px; background: var(--error); color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; cursor: pointer; z-index: 10; }
+        .btn-exec { width: 100%; background: var(--neon); color: #000; border: none; padding: 16px; border-radius: 15px; font-weight: 900; cursor: pointer; transition: 0.3s; font-size: 17px; }
+        .btn-exec:disabled { background: #333; color: #777; cursor: not-allowed; }
+        #progress-container { display:none; background:rgba(255,255,255,0.1); border-radius:10px; margin:15px 0; height: 8px; overflow: hidden; }
+        #progress-bar { width: 0%; height: 100%; background: var(--neon); transition: 0.3s; }
+        .limit-info { font-size: 11px; color: #888; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <div class="main-card">
+        <h2 style="margin-top:0; color: var(--neon);">New Post</h2>
+        <div class="text-box">
+            <textarea id="caption" placeholder="What's on your mind? (Text posts allowed)" rows="4"></textarea>
+        </div>
+        <div class="drop-zone" onclick="document.getElementById('multi-input').click()">
+            <input type="file" id="multi-input" hidden multiple accept="image/*,video/*">
+            <i class="fa-solid fa-photo-film" style="font-size: 35px; color: var(--neon);"></i>
+            <p style="margin: 10px 0 0;">Add Media (Optional)</p>
+            <div class="limit-info">Photos or Videos (Max 2 mins per video)</div>
+        </div>
+        <div class="gallery-wrapper" id="gallery"></div>
+        <div id="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+        <button class="btn-exec" id="publish-btn">Publish Now</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBkjn1uIjzvmC4suZdA8bfYNO_fx5Hnj0s",
+            authDomain: "comments-5e3b5.firebaseapp.com",
+            projectId: "comments-5e3b5",
+            storageBucket: "comments-5e3b5.firebasestorage.app",
+            appId: "1:907122259758:web:7819cab50ebd74dd912cbf"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const CLOUD_NAME = "dt5pdj978";
+        const UPLOAD_PRESET = "raneem";
+        let filesBucket = [];
+
+        document.getElementById('multi-input').addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+
+            for (const file of files) {
+                if (file.type.startsWith('video')) {
+                    const duration = await getVideoDuration(file);
+                    if (duration > 120) { 
+                        alert(`Video "${file.name}" is too long! Max limit is 2 minutes.`);
+                        continue;
+                    }
+                }
+                if (filesBucket.length < 10) filesBucket.push(file);
+            }
+            renderGallery();
+        });
+
+        function getVideoDuration(file) {
+            return new Promise((resolve) => {
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+                video.onloadedmetadata = () => {
+                    window.URL.revokeObjectURL(video.src);
+                    resolve(video.duration);
+                };
+                video.src = URL.createObjectURL(file);
+            });
+        }
+
+        function renderGallery() {
+            const gallery = document.getElementById('gallery');
+            gallery.innerHTML = '';
+            filesBucket.forEach((file, index) => {
+                const url = URL.createObjectURL(file);
+                const div = document.createElement('div');
+                div.className = 'preview-card';
+                div.innerHTML = `
+                    <button class="remove-btn" onclick="window.removeFile(${index})">×</button>
+                    ${file.type.startsWith('video') ? `<video src="${url}"></video>` : `<img src="${url}">`}
+                `;
+                gallery.appendChild(div);
+            });
+        }
+
+        window.removeFile = (index) => {
+            filesBucket.splice(index, 1);
+            renderGallery();
+        };
+
+        document.getElementById('publish-btn').onclick = async () => {
+            const btn = document.getElementById('publish-btn');
+            const caption = document.getElementById('caption').value.trim();
+            const user = auth.currentUser;
+
+            if (!user) return alert("Please log in first!");
+            if (!caption && filesBucket.length === 0) return alert("Write something or select a file to publish.");
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Publishing...`;
+
+            try {
+                const uploadedUrls = [];
+                let hasVideo = false;
+
+                if (filesBucket.length > 0) {
+                    document.getElementById('progress-container').style.display = 'block';
+
+                    for (let i = 0; i < filesBucket.length; i++) {
+                        const file = filesBucket[i];
+                        if (file.type.startsWith('video')) hasVideo = true;
+
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        formData.append('upload_preset', UPLOAD_PRESET);
+
+                        const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        const data = await res.json();
+                        if (data.secure_url) {
+                            uploadedUrls.push(data.secure_url);
+                            document.getElementById('progress-bar').style.width = ((i+1)/filesBucket.length * 100) + '%';
+                        }
+                    }
+                }
+
+                let type = "text";
+                let collectionName = "posts";
+
+                if (hasVideo) {
+                    type = "video";
+                    collectionName = "reels";
+                } else if (uploadedUrls.length > 0) {
+                    type = "image";
+                    collectionName = "posts";
+                }
+
+                await addDoc(collection(db, collectionName), {
+                    uid: user.uid,
+                    username: user.displayName || "Whiter User",
+                    userPhoto: user.photoURL || "",
+                    caption: caption,
+                    [hasVideo ? "videoUrl" : "images"]: hasVideo ? uploadedUrls[0] : uploadedUrls,
+                    type: type,
+                    createdAt: serverTimestamp(),
+                    likes: [],
+                    commentsCount: 0
+                });
+
+                alert("Published successfully!");
+                window.location.href = hasVideo ? "reels.html" : "feed.html";
+
+            } catch (err) {
+                console.error(err);
+                alert("An error occurred while publishing. Please try again.");
+                btn.disabled = false;
+                btn.innerHTML = "Publish Now";
+                document.getElementById('progress-container').style.display = 'none';
+            }
+        };
+    </script>
+</body>
+</html>

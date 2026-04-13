@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Whiterchat | Reels Pro Max</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root { --neon: #00ff88; --glass: rgba(255, 255, 255, 0.1); --bg: #000; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; overflow: hidden; color: #fff; }
+
+        .app-container { display: flex; justify-content: center; align-items: center; width: 100%; height: 100vh; }
+        .reels-wrapper { position: relative; width: 100%; max-width: 450px; height: 100vh; background: #000; overflow: hidden; display: flex; }
+        
+        .reels-feed { flex: 1; height: 100%; overflow-y: scroll; scroll-snap-type: y mandatory; scrollbar-width: none; }
+        .reels-feed::-webkit-scrollbar { display: none; }
+
+        .reel-slide { height: 100vh; width: 100%; scroll-snap-align: start; position: relative; display: flex; align-items: center; background: #000; }
+        video { width: 100%; max-height: 100%; object-fit: contain; }
+
+        /* UI Overlay */
+        .ui-overlay { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, transparent 50%, rgba(0,0,0,0.8) 100%); }
+        
+        .right-sidebar { position: absolute; right: 12px; bottom: 100px; display: flex; flex-direction: column; gap: 22px; z-index: 50; align-items: center; }
+        .btn-action { color: #fff; text-align: center; cursor: pointer; pointer-events: auto; }
+        .btn-action i { font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8)); }
+        .btn-action span { font-size: 12px; display: block; margin-top: 6px; font-weight: 600; }
+        .liked { color: #ff3040 !important; }
+
+        .video-info { position: absolute; bottom: 35px; left: 15px; right: 70px; z-index: 40; pointer-events: auto; }
+        .user-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+        .user-row img { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--neon); object-fit: cover; }
+        .user-row b { font-size: 15px; letter-spacing: 0.5px; }
+        .follow-tag { background: transparent; border: 1.5px solid #fff; color: #fff; padding: 5px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
+
+        .top-nav { position: absolute; top: 25px; left: 15px; z-index: 60; display: flex; gap: 12px; pointer-events: auto; }
+        .icon-btn { background: rgba(0,0,0,0.4); backdrop-filter: blur(5px); color: #fff; padding: 10px; border-radius: 50%; cursor: pointer; }
+
+        /* Panels Styles */
+        .panel-mask { position: absolute; inset: 0; background: rgba(0,0,0,0.6); z-index: 900; display: none; }
+        .bottom-panel { position: absolute; bottom: -100%; left: 0; width: 100%; height: 75%; background: #121212; border-radius: 20px 20px 0 0; z-index: 1000; transition: 0.4s cubic-bezier(0.17, 0.84, 0.44, 1); display: flex; flex-direction: column; }
+        .bottom-panel.active { bottom: 0; }
+        
+        .panel-header { padding: 18px; text-align: center; font-weight: bold; border-bottom: 1px solid #222; font-size: 16px; }
+        .panel-body { flex: 1; overflow-y: auto; padding: 15px; }
+        
+        .comment-item { display: flex; gap: 12px; margin-bottom: 20px; }
+        .comment-item img { width: 34px; height: 34px; border-radius: 50%; }
+        .comment-item .txt { font-size: 13px; color: #ddd; }
+        .comment-item b { color: #fff; font-size: 14px; margin-right: 5px; }
+
+        .input-footer { padding: 15px; display: flex; gap: 10px; background: #000; border-top: 1px solid #222; }
+        .input-footer input { flex: 1; background: #222; border: none; padding: 14px; color: #fff; border-radius: 12px; }
+        .send-btn { background: var(--neon); color: #000; border: none; padding: 0 20px; border-radius: 12px; font-weight: bold; cursor: pointer; }
+
+        .friend-row { display: flex; align-items: center; gap: 12px; padding: 12px; background: #1a1a1a; border-radius: 12px; margin-bottom: 10px; cursor: pointer; }
+        .friend-row img { width: 40px; height: 40px; border-radius: 50%; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <div class="panel-mask" id="global-mask" onclick="window.closeAllPanels()"></div>
+    
+    <div class="reels-wrapper">
+        <div class="reels-feed" id="main-feed"></div>
+    </div>
+
+    <div id="panel-comments" class="bottom-panel">
+        <div class="panel-header">Comments</div>
+        <div id="comment-list" class="panel-body"></div>
+        <div class="input-footer">
+            <input type="text" id="comment-input" placeholder="Write a comment...">
+            <button class="send-btn" onclick="window.handleCommentPost()">Post</button>
+        </div>
+    </div>
+
+    <div id="panel-share" class="bottom-panel">
+        <div class="panel-header">Send to Friends</div>
+        <div id="friend-list" class="panel-body"></div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, query, orderBy, onSnapshot, doc, updateDoc, arrayUnion, arrayRemove, addDoc, serverTimestamp, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const firebaseConfig = { apiKey: "AIzaSyBkjn1uIjzvmC4suZdA8bfYNO_fx5Hnj0s", projectId: "comments-5e3b5" };
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    const ADMIN_ID = "YOUR_UID_HERE"; 
+    let currentReelId = null;
+    let followingList = [];
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            const userSnap = await getDoc(doc(db, "users", user.uid));
+            followingList = userSnap.data()?.following || [];
+            fetchReels();
+        }
+    });
+
+    function fetchReels() {
+        onSnapshot(query(collection(db, "reels"), orderBy("createdAt", "desc")), (snap) => {
+            const container = document.getElementById('main-feed');
+            container.innerHTML = '';
+            snap.forEach(d => {
+                const r = d.data();
+                const rid = d.id;
+                const isLiked = (r.likes || []).includes(auth.currentUser.uid);
+                const isFollowing = followingList.includes(r.uid);
+                const isAdmin = (auth.currentUser.uid === r.uid || auth.currentUser.uid === ADMIN_ID);
+
+                container.innerHTML += `
+                <div class="reel-slide">
+                    <video src="${r.videoUrl}" loop playsinline onclick="window.vPlay(this)"></video>
+                    <div class="ui-overlay"></div>
+                    
+                    <div class="top-nav">
+                        <i class="fa-solid fa-volume-high icon-btn" onclick="window.vMute(this)"></i>
+                        ${isAdmin ? `<i class="fa-solid fa-trash-can icon-btn" style="color:#ff4d4d" onclick="window.handleDelete('${rid}')"></i>` : ''}
+                    </div>
+
+                    <div class="right-sidebar">
+                        <div class="btn-action" onclick="window.handleLike('${rid}', ${isLiked})">
+                            <i class="fa-solid fa-heart ${isLiked ? 'liked' : ''}"></i>
+                            <span>${(r.likes || []).length}</span>
+                        </div>
+                        <div class="btn-action" onclick="window.openComments('${rid}')">
+                            <i class="fa-solid fa-comment-dots"></i>
+                            <span>${r.commentsCount || 0}</span>
+                        </div>
+                        <div class="btn-action" onclick="window.handleRepost('${rid}')">
+                            <i class="fa-solid fa-retweet"></i>
+                            <span>${r.reposts || 0}</span>
+                        </div>
+                        <div class="btn-action" onclick="window.openShare('${rid}')">
+                            <i class="fa-solid fa-paper-plane"></i>
+                        </div>
+                    </div>
+
+                    <div class="video-info">
+                        <div class="user-row">
+                            <img src="${r.userPhoto || 'https://via.placeholder.com/40'}" onclick="window.goProfile('${r.uid}')">
+                            <b onclick="window.goProfile('${r.uid}')">@${r.username}</b>
+                            ${r.uid !== auth.currentUser.uid ? `<button class="follow-tag" onclick="window.handleFollow('${r.uid}', this)">${isFollowing ? 'Following' : 'Follow'}</button>` : ''}
+                        </div>
+                        <div style="font-size:14px; line-height:1.4;">${r.caption || ''}</div>
+                    </div>
+                </div>`;
+            });
+            initScrollObserver();
+        });
+    }
+
+    // Exporting functions to window for HTML access
+    window.vPlay = (v) => v.paused ? v.play() : v.pause();
+    window.vMute = (btn) => {
+        const vids = document.querySelectorAll('video');
+        vids.forEach(v => v.muted = !v.muted);
+        btn.className = vids[0].muted ? "fa-solid fa-volume-xmark icon-btn" : "fa-solid fa-volume-high icon-btn";
+    };
+
+    window.handleLike = async (id, status) => {
+        await updateDoc(doc(db, "reels", id), { likes: status ? arrayRemove(auth.currentUser.uid) : arrayUnion(auth.currentUser.uid) });
+    };
+
+    window.handleFollow = async (uid, btn) => {
+        const ref = doc(db, "users", auth.currentUser.uid);
+        const exists = followingList.includes(uid);
+        await updateDoc(ref, { following: exists ? arrayRemove(uid) : arrayUnion(uid) });
+        btn.innerText = exists ? "Follow" : "Following";
+        followingList = exists ? followingList.filter(i => i !== uid) : [...followingList, uid];
+    };
+
+    window.openComments = (rid) => {
+        currentReelId = rid;
+        document.getElementById('global-mask').style.display = 'block';
+        document.getElementById('panel-comments').classList.add('active');
+        const list = document.getElementById('comment-list');
+        
+        onSnapshot(query(collection(db, "reels", rid, "comments"), orderBy("createdAt", "desc")), (snap) => {
+            list.innerHTML = '';
+            snap.forEach(doc => {
+                const c = doc.data();
+                list.innerHTML += `
+                <div class="comment-item">
+                    <img src="${c.userPhoto || 'https://via.placeholder.com/34'}">
+                    <div class="txt"><b>${c.username}</b>${c.text}</div>
+                </div>`;
+            });
+        });
+    };
+
+    window.handleCommentPost = async () => {
+        const input = document.getElementById('comment-input');
+        if(!input.value.trim()) return;
+        await addDoc(collection(db, "reels", currentReelId, "comments"), {
+            uid: auth.currentUser.uid, username: auth.currentUser.displayName,
+            userPhoto: auth.currentUser.photoURL, text: input.value, createdAt: serverTimestamp()
+        });
+        const ref = doc(db, "reels", currentReelId);
+        const snap = await getDoc(ref);
+        await updateDoc(ref, { commentsCount: (snap.data().commentsCount || 0) + 1 });
+        input.value = '';
+    };
+
+    window.openShare = async (rid) => {
+        currentReelId = rid;
+        document.getElementById('global-mask').style.display = 'block';
+        document.getElementById('panel-share').classList.add('active');
+        const fList = document.getElementById('friend-list');
+        fList.innerHTML = 'Loading friends...';
+        
+        const uSnap = await getDoc(doc(db, "users", auth.currentUser.uid));
+        const following = uSnap.data()?.following || [];
+        fList.innerHTML = following.length === 0 ? '<p style="text-align:center">No friends found</p>' : '';
+        
+        following.forEach(async (uid) => {
+            const fDoc = await getDoc(doc(db, "users", uid));
+            const fd = fDoc.data();
+            fList.innerHTML += `
+            <div class="friend-row" onclick="window.sendToFriend('${uid}')">
+                <img src="${fd.photoURL || 'https://via.placeholder.com/40'}">
+                <b>${fd.username}</b>
+                <i class="fa-solid fa-paper-plane" style="margin-left:auto; color:var(--neon)"></i>
+            </div>`;
+        });
+    };
+
+    window.sendToFriend = async (uid) => {
+        await addDoc(collection(db, "chats"), {
+            senderId: auth.currentUser.uid, receiverId: uid, 
+            reelId: currentReelId, text: "Check out this reel!", createdAt: serverTimestamp()
+        });
+        alert("Reel shared successfully!");
+        window.closeAllPanels();
+    };
+
+    window.handleRepost = async (rid) => {
+        const s = await getDoc(doc(db, "reels", rid));
+        const d = s.data();
+        await addDoc(collection(db, "reels"), {
+            ...d, uid: auth.currentUser.uid, username: auth.currentUser.displayName, 
+            userPhoto: auth.currentUser.photoURL, isRepost: true, createdAt: serverTimestamp(), likes: [], commentsCount: 0
+        });
+        alert("Reposted!");
+    };
+
+    window.handleDelete = async (id) => { if(confirm("Delete this reel forever?")) await deleteDoc(doc(db, "reels", id)); };
+    window.closeAllPanels = () => { document.getElementById('global-mask').style.display = 'none'; document.querySelectorAll('.bottom-panel').forEach(p => p.classList.remove('active')); };
+    window.goProfile = (uid) => location.href = `profile.html?uid=${uid}`;
+
+    function initScrollObserver() {
+        const feed = document.getElementById('main-feed');
+        feed.onscroll = () => {
+            document.querySelectorAll('video').forEach(v => {
+                const rect = v.getBoundingClientRect();
+                (rect.top >= 0 && rect.top < window.innerHeight / 2) ? v.play().catch(()=>0) : v.pause();
+            });
+        };
+    }
+</script>
+</body>
+</html>

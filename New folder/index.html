@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>WhiterChat | منصة تواصل اجتماعي عربية</title>
+
+    <meta name="description" content="WhiterChat منصة تواصل اجتماعي عربية لمشاركة الصور والمنشورات والتفاعل بين المستخدمين بطريقة حديثة وسريعة.">
+
+    <link rel="icon" href="logo.png">
+    <meta name="theme-color" content="#000000">
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #000;
+            font-family: Arial;
+            overflow: hidden;
+            color: white;
+        }
+
+        /* 🔥 SEO CONTENT (مخفي بدون خداع) */
+        .seo {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        /* 🔥 SPLASH الحقيقي */
+        #splash {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .logo {
+            width: 110px;
+            height: 110px;
+            border-radius: 25px;
+            box-shadow: 0 0 40px #00ff99;
+        }
+
+        .title {
+            margin-top: 20px;
+            font-size: 26px;
+            font-weight: bold;
+            color: #00ff99;
+        }
+
+        .bar {
+            width: 140px;
+            height: 3px;
+            background: #222;
+            margin-top: 20px;
+            overflow: hidden;
+            border-radius: 10px;
+        }
+
+        .bar div {
+            width: 0%;
+            height: 100%;
+            background: #00ff99;
+            animation: load 2.5s forwards;
+        }
+
+        @keyframes load {
+            to { width: 100%; }
+        }
+
+        /* 🔥 بعد التحميل */
+        #main-content {
+            display: none;
+            padding: 40px;
+            text-align: center;
+        }
+
+        #main-content h1 {
+            color: #00ff99;
+        }
+
+        #main-content a {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 20px;
+            background: #00ff99;
+            color: #000;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- 🔥 SEO CONTENT (Google يقرأه) -->
+<div class="seo">
+    <h1>WhiterChat - شبكة تواصل اجتماعي عربية</h1>
+    <p>
+        WhiterChat منصة اجتماعية حديثة تسمح للمستخدمين بمشاركة الصور والمنشورات والتفاعل مع الآخرين بسهولة.
+        تشبه تجربة التطبيقات العالمية مثل الشبكات الاجتماعية الحديثة.
+    </p>
+</div>
+
+<!-- 🔥 Splash -->
+<div id="splash">
+    <img src="logo.png" class="logo">
+    <div class="title">WhiterChat</div>
+    <div class="bar"><div></div></div>
+</div>
+
+<!-- 🔥 fallback content (لو Google فتح الصفحة بدون JS) -->
+<div id="main-content">
+    <h1>WhiterChat</h1>
+    <p>منصة تواصل اجتماعي عربية لمشاركة الصور والمنشورات والتفاعل مع الأصدقاء.</p>
+    <a href="login.html">ابدأ الآن</a>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBkjn1uIjzvmC4suZdA8bfYNO_fx5Hnj0s",
+        authDomain: "comments-5e3b5.firebaseapp.com",
+        projectId: "comments-5e3b5",
+        appId: "1:907122259758:web:7819cab50ebd74dd912cbf"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const start = Date.now();
+
+    onAuthStateChanged(auth, (user) => {
+        setTimeout(() => {
+            window.location.href = user ? "feed.html" : "signup.html";
+        }, 2500);
+    });
+
+    // fallback لو JS توقف
+    setTimeout(() => {
+        document.getElementById('splash').style.display = "none";
+        document.getElementById('main-content').style.display = "block";
+    }, 3000);
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js');
+        });
+    }
+</script>
+
+</body>
+</html>

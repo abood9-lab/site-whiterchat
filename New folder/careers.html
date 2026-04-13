@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ar" id="htmlRoot">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Whiterchat | Premium Careers</title>
+    <style>
+        :root {
+            --accent: #00ff88;
+            --bg: #050505;
+            --border: rgba(0, 255, 136, 0.3);
+            --card-glass: rgba(0, 0, 0, 0.6);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); }
+        body { background: var(--bg); color: #fff; font-family: 'Inter', system-ui, -apple-system, sans-serif; margin: 0; padding-top: 80px; overflow-x: hidden; }
+
+        header {
+            position: fixed; top: 0; width: 100%; height: 75px;
+            background: rgba(0,0,0,0.8); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 25px; border-bottom: 1px solid var(--border); z-index: 1000;
+        }
+
+        .logo-text { font-size: 22px; font-weight: 900; color: var(--accent); letter-spacing: 1px; }
+        .admin-lock { background: rgba(0, 255, 136, 0.1); color: var(--accent); border: 1px solid var(--accent); padding: 7px 15px; border-radius: 50px; cursor: pointer; font-size: 12px; font-weight: bold; }
+
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+
+        /* Grid للوظائف بصور */
+        .jobs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px; }
+
+        .job-card {
+            height: 400px; border-radius: 30px; position: relative; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: flex-end;
+            cursor: pointer; background-size: cover; background-position: center;
+        }
+        .job-card:hover { transform: scale(1.02); border-color: var(--accent); box-shadow: 0 20px 40px rgba(0,0,0,0.6); }
+        
+        /* تأثير الظل الزجاجي الداخلي */
+        .card-overlay {
+            width: 100%; padding: 30px; background: linear-gradient(to top, rgba(0,0,0,0.9) 20%, transparent);
+            backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+        }
+        .job-card h3 { font-size: 24px; margin: 0 0 10px 0; color: var(--accent); }
+        .job-card p { font-size: 14px; color: #ccc; margin: 0; line-height: 1.4; }
+
+        /* Form Modal */
+        #applyModal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.92);
+            display: none; justify-content: center; align-items: center; z-index: 2000; padding: 20px;
+        }
+        .modal-body {
+            background: #0f0f0f; border: 1px solid var(--border); width: 100%;
+            max-width: 500px; padding: 40px; border-radius: 35px; position: relative;
+        }
+        input, textarea {
+            width: 100%; background: #1a1a1a; border: 1px solid #333;
+            padding: 16px; border-radius: 15px; color: #fff; margin-bottom: 15px; outline: none;
+        }
+        input:focus { border-color: var(--accent); }
+        .submit-btn {
+            background: var(--accent); color: #000; border: none; padding: 18px;
+            border-radius: 18px; font-weight: 900; width: 100%; cursor: pointer; font-size: 16px;
+        }
+
+        /* Admin Feed */
+        #adminPanel { display: none; animation: slideUp 0.6s ease; }
+        .app-card {
+            background: #111; border: 1px solid #222; border-radius: 20px;
+            padding: 25px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;
+        }
+        .app-card.new { border-left: 5px solid var(--accent); }
+
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 600px) {
+            .job-card { height: 300px; }
+            .modal-body { padding: 25px; }
+        }
+    </style>
+</head>
+<body dir="rtl">
+
+<header>
+    <div class="logo-text">Whiterchat</div>
+    <div style="display: flex; gap: 10px;">
+        <button class="admin-lock" onclick="toggleLang()" id="lBtn">English</button>
+        <button class="admin-lock" onclick="openAdmin()" style="border-color: #555; color: #888;">Admin</button>
+    </div>
+</header>
+
+<div class="container">
+    <div id="userSide">
+        <div style="text-align: center; margin-bottom: 50px;">
+            <h1 id="hTitle" style="font-size: 40px; margin-bottom: 10px;">انضم إلى المبدعين</h1>
+            <p id="hSub" style="color: var(--accent); font-weight: bold; letter-spacing: 1px;">بواسطة عبد الرحمن المفلح</p>
+        </div>
+
+        <div class="jobs-grid" id="jobsGrid">
+            <div class="job-card" style="background-image: url('https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=800&q=80')" onclick="openModal('مطور واجهات (Frontend)')">
+                <div class="card-overlay">
+                    <h3>مطور واجهات</h3>
+                    <p>حول التصاميم الخيالية إلى واقع تفاعلي باستخدام أحدث التقنيات.</p>
+                </div>
+            </div>
+
+            <div class="job-card" style="background-image: url('https://images.unsplash.com/photo-1558494949-ef010cbdcc51?auto=format&fit=crop&w=800&q=80')" onclick="openModal('مطور أنظمة (Backend)')">
+                <div class="card-overlay">
+                    <h3>مطور أنظمة</h3>
+                    <p>صمم عقل المنصة ودماغها، تعامل مع البيانات والسرعة والأمان.</p>
+                </div>
+            </div>
+
+            <div class="job-card" style="background-image: url('https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=800&q=80')" onclick="openModal('مصمم تجربة مستخدم (UI/UX)')">
+                <div class="card-overlay">
+                    <h3>مصمم إبداعي</h3>
+                    <p>ارسم ملامح وايت تشات واجعل تجربة المستخدم سهلة وبسيطة.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="adminPanel">
+        <h2 style="color: var(--accent); border-bottom: 1px solid #222; padding-bottom: 20px;">إدارة المتقدمين (عبد الرحمن المفلح)</h2>
+        <div id="appsList">
+            </div>
+    </div>
+</div>
+
+<div id="applyModal">
+    <div class="modal-body">
+        <h2 id="mTitle" style="color: var(--accent); margin-top: 0;"></h2>
+        <form id="proForm" onsubmit="handleSecureSubmit(event)">
+            <input type="text" id="iName" placeholder="الاسم الكامل" required>
+            <input type="email" id="iEmail" placeholder="البريد الإلكتروني" required>
+            <input type="url" id="iLink" placeholder="رابط أعمالك (GitHub/Behance)" required>
+            <textarea id="iMsg" rows="4" placeholder="لماذا أنت الأنسب؟" required></textarea>
+            <button type="submit" class="submit-btn" id="sBtn">إرسال الطلب الآن</button>
+            <button type="button" onclick="closeModal()" style="width:100%; background:transparent; border:none; color:#444; margin-top:15px; cursor:pointer;">إلغاء</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    const KEY = "Abood2026";
+    let db = [];
+    let currentJob = "";
+    let isAr = true;
+
+    // حماية: تنظيف النصوص (Sanitize) لعدم السماح بحقن كود
+    function sanitize(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function openModal(job) {
+        currentJob = job;
+        document.getElementById('mTitle').innerText = job;
+        document.getElementById('applyModal').style.display = 'flex';
+    }
+
+    function closeModal() { document.getElementById('applyModal').style.display = 'none'; }
+
+    // إرسال الطلب مع حماية
+    function handleSecureSubmit(e) {
+        e.preventDefault();
+        const btn = document.getElementById('sBtn');
+        btn.disabled = true; // منع الإرسال المتكرر (Spam protection)
+        btn.innerText = "جاري الإرسال...";
+
+        const app = {
+            id: Date.now(),
+            name: sanitize(document.getElementById('iName').value),
+            email: sanitize(document.getElementById('iEmail').value),
+            link: sanitize(document.getElementById('iLink').value),
+            msg: sanitize(document.getElementById('iMsg').value),
+            job: currentJob
+        };
+
+        db.push(app);
+
+        setTimeout(() => {
+            alert("شكراً لك يا " + app.name + "! تم استقبال طلبك بنجاح.");
+            document.getElementById('proForm').reset();
+            closeModal();
+            btn.disabled = false;
+            btn.innerText = "إرسال الطلب الآن";
+        }, 1000);
+    }
+
+    function openAdmin() {
+        if (prompt("Security Access Key:") === KEY) {
+            document.getElementById('userSide').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'block';
+            renderAdmin();
+        }
+    }
+
+    function renderAdmin() {
+        const list = document.getElementById('appsList');
+        list.innerHTML = '';
+        if (db.length === 0) { list.innerHTML = '<p style="color:#444; text-align:center;">لا يوجد متقدمين حتى الآن.</p>'; return; }
+
+        db.forEach(a => {
+            list.innerHTML += `
+                <div class="app-card new">
+                    <div>
+                        <b style="color:var(--accent); font-size:18px;">${a.name}</b><br>
+                        <small style="color:#777;">الوظيفة: ${a.job}</small>
+                        <p style="font-size:13px; color:#aaa; margin:10px 0;">${a.msg}</p>
+                        <a href="${a.link}" target="_blank" style="color:var(--accent); text-decoration:none; font-size:12px;">مشاهدة الملف الشخصي ↗</a>
+                    </div>
+                    <button onclick="approve('${a.name}', this)" style="background:var(--accent); border:none; padding:10px 20px; border-radius:12px; font-weight:bold; cursor:pointer;">موافقة</button>
+                </div>
+            `;
+        });
+    }
+
+    function approve(name, btn) {
+        if (Notification.permission === "granted") {
+            new Notification("Whiterchat", { body: `تم قبول ${name} بنجاح!` });
+        }
+        btn.innerText = "تم القبول ✅";
+        btn.disabled = true;
+        btn.style.background = "#222";
+        btn.style.color = "#555";
+    }
+
+    function toggleLang() {
+        isAr = !isAr;
+        document.getElementById('htmlRoot').dir = isAr ? 'rtl' : 'ltr';
+        document.getElementById('lBtn').innerText = isAr ? 'English' : 'العربية';
+        document.getElementById('hTitle').innerText = isAr ? 'انضم إلى المبدعين' : 'Join the Creators';
+    }
+
+    // اطلب الإذن للإشعارات
+    document.addEventListener('click', () => {
+        if (Notification.permission === "default") Notification.requestPermission();
+    }, {once: true});
+</script>
+</body>
+</html>
