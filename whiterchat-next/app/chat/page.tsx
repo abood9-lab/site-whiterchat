@@ -228,7 +228,7 @@ function ChatContent() {
       {/* Footer */}
       <footer className="p-[10px] pb-[calc(15px+env(safe-area-inset-bottom))] bg-[rgba(10,25,30,0.96)] border-t border-[rgba(0,255,136,0.2)] fixed bottom-0 w-full z-[1001]">
         {replyTo && (
-          <div className="hidden bg-[rgba(0,255,136,0.1)] p-2 rounded-[10px] mb-2 border-l-[3px] border-[#00ff88] relative" style={{ display: replyTo ? 'block' : 'none' }}>
+          <div className="bg-[rgba(0,255,136,0.1)] p-2 rounded-[10px] mb-2 border-l-[3px] border-[#00ff88] relative">
             <span className="text-[11px] text-[#00ff88] overflow-hidden whitespace-nowrap text-ellipsis block pr-[25px]">{replyTo.text}</span>
             <button onClick={() => setReplyTo(null)} className="absolute right-[10px] top-2 bg-none border-none text-white cursor-pointer">✕</button>
           </div>

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   collection, query, where, onSnapshot, doc, addDoc,
@@ -59,7 +59,7 @@ export default function MessagesPage() {
   const [selectedFriends, setSelectedFriends] = useState<string[]>([]);
   const [viewNote, setViewNote] = useState<Note | null>(null);
   const [noteReply, setNoteReply] = useState('');
-  const audioRef = useState<HTMLAudioElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     if (!loading && !user) router.replace('/login');
@@ -299,8 +299,7 @@ export default function MessagesPage() {
           </div>
         </div>
       )}
-      {/* eslint-disable-next-line @typescript-eslint/no-unused-vars */}
-      <audio ref={el => { audioRef[0] = el; }} preload="auto" />
+      <audio ref={audioRef} preload="auto" />
     </div>
   );
 }

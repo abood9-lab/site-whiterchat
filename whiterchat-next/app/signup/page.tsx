@@ -105,7 +105,9 @@ export default function SignupPage() {
   };
 
   const triggerEmailSend = async () => {
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    const otp = String(100000 + (array[0] % 900000));
     const payload = {
       service_id: 'service_51cc49c',
       template_id: 'template_j7epq4q',
