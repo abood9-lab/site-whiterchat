@@ -9,8 +9,8 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/useToast';
 import Toast from '@/components/Toast';
 
-const CLOUD_NAME = 'dt5pdj978';
-const UPLOAD_PRESET = 'raneem';
+const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? '';
+const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET ?? '';
 
 interface FilePreview {
   file: File;
@@ -36,8 +36,9 @@ export default function CreatePostPage() {
     return new Promise(resolve => {
       const video = document.createElement('video');
       video.preload = 'metadata';
-      video.onloadedmetadata = () => { window.URL.revokeObjectURL(video.src); resolve(video.duration); };
-      video.src = URL.createObjectURL(file);
+      const objectUrl = URL.createObjectURL(file);
+      video.onloadedmetadata = () => { URL.revokeObjectURL(objectUrl); resolve(video.duration); };
+      video.src = objectUrl;
     });
   };
 

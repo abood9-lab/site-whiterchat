@@ -109,9 +109,9 @@ export default function SignupPage() {
     crypto.getRandomValues(array);
     const otp = String(100000 + (array[0] % 900000));
     const payload = {
-      service_id: 'service_51cc49c',
-      template_id: 'template_j7epq4q',
-      user_id: 'mavpiHbGoq6KszVnP',
+      service_id: process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID,
+      template_id: process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID,
+      user_id: process.env.NEXT_PUBLIC_EMAILJS_USER_ID,
       template_params: { email, passcode: otp },
     };
     try {
