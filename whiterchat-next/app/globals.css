@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+:root {
+  --neon: #00ff88;
+  --bg: #01080b;
+  --glass: rgba(15, 30, 35, 0.9);
+  --border: rgba(0, 255, 136, 0.2);
+  --error: #ff4d4d;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background: var(--bg);
+  color: white;
+  font-family: -apple-system, system-ui, sans-serif;
+  margin: 0;
+}
+
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.4s ease forwards;
+}
+
+@keyframes load-bar {
+  to { width: 100%; }
+}
+
+.animate-load-bar {
+  animation: load-bar 2.5s forwards;
+}
+
+@keyframes typing-cursor {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
