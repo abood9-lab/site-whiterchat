@@ -1,0 +1,382 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar 1: Global Default-Deny Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (
+          request.auth.token.email == 'shahedalmefleh850@gmail.com' &&
+          request.auth.token.email_verified == true
+        ) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 256 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidShortId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTimestampStr(val) {
+      return val is string && val.size() > 0 && val.size() <= 64;
+    }
+
+    function isValidUser(data, userId) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'displayName', 'username', 'bio', 'photoURL', 'createdAt', 'updatedAt']) &&
+        data.uid == request.auth.uid &&
+        data.uid == userId &&
+        data.email is string && data.email.size() <= 256 &&
+        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 128)) &&
+        (!('username' in data) || (data.username is string && data.username.size() <= 64 && (data.username.size() == 0 || data.username.matches('^[a-zA-Z0-9._-]+$')))) &&
+        (!('bio' in data) || (data.bio is string && data.bio.size() <= 500)) &&
+        (!('photoURL' in data) || (data.photoURL is string && data.photoURL.size() <= 1024)) &&
+        isValidTimestampStr(data.createdAt) &&
+        (!('updatedAt' in data) || isValidTimestampStr(data.updatedAt));
+    }
+
+    function isValidProject(data, userId, projectId) {
+      return data.keys().hasAll(['projectId', 'ownerId', 'name', 'volumeName', 'volumeSubpath', 'storageBackend', 'createdAt']) &&
+        data.keys().hasOnly([
+          'projectId', 'ownerId', 'name', 'volumeName', 'volumeId', 'volumeSubpath',
+          'sandboxId', 'sandboxStatus', 'storageBackend', 'totalFiles', 'totalBytes',
+          'migrationStatus', 'lastActiveAt', 'lastStoppedAt', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidShortId(data.projectId) &&
+        data.projectId == projectId &&
+        isValidShortId(data.ownerId) &&
+        data.ownerId == userId &&
+        data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+        data.volumeName is string && data.volumeName.size() > 0 && data.volumeName.size() <= 128 &&
+        (!('volumeId' in data) || (data.volumeId is string && data.volumeId.size() <= 128)) &&
+        data.volumeSubpath is string && data.volumeSubpath.size() <= 256 &&
+        data.volumeSubpath == ('users/' + userId + '/projects/' + projectId) &&
+        (!('sandboxId' in data) || (data.sandboxId is string && data.sandboxId.size() <= 128)) &&
+        (!('sandboxStatus' in data) || data.sandboxStatus in ['none', 'creating', 'started', 'stopped', 'stopping', 'error']) &&
+        data.storageBackend in ['daytona_volume', 'migrating'] &&
+        (!('totalFiles' in data) || (data.totalFiles is number && data.totalFiles >= 0)) &&
+        (!('totalBytes' in data) || (data.totalBytes is number && data.totalBytes >= 0)) &&
+        (!('migrationStatus' in data) || data.migrationStatus in ['not_started', 'in_progress', 'completed', 'partial', 'failed']) &&
+        (!('lastActiveAt' in data) || isValidTimestampStr(data.lastActiveAt)) &&
+        (!('lastStoppedAt' in data) || isValidTimestampStr(data.lastStoppedAt)) &&
+        isValidTimestampStr(data.createdAt) &&
+        (!('updatedAt' in data) || isValidTimestampStr(data.updatedAt));
+    }
+
+    function isValidWorkspaceSession(data, userId, projectId, sessionId) {
+      return data.keys().hasAll(['sessionId', 'projectId', 'ownerId', 'status', 'lastHeartbeatAt', 'createdAt']) &&
+        data.keys().hasOnly(['sessionId', 'projectId', 'ownerId', 'sandboxId', 'status', 'lastHeartbeatAt', 'endedAt', 'createdAt']) &&
+        isValidShortId(data.sessionId) && data.sessionId == sessionId &&
+        isValidShortId(data.projectId) && data.projectId == projectId &&
+        isValidShortId(data.ownerId) && data.ownerId == userId &&
+        (!('sandboxId' in data) || (data.sandboxId is string && data.sandboxId.size() <= 128)) &&
+        data.status in ['active', 'ended'] &&
+        isValidTimestampStr(data.lastHeartbeatAt) &&
+        (!('endedAt' in data) || isValidTimestampStr(data.endedAt)) &&
+        isValidTimestampStr(data.createdAt);
+    }
+
+    function isValidProjectFileMeta(data, userId, projectId, fileId) {
+      return data.keys().hasAll(['fileId', 'projectId', 'ownerId', 'relativePath', 'sizeBytes', 'storageLocation', 'updatedAt']) &&
+        data.keys().hasOnly([
+          'fileId', 'projectId', 'ownerId', 'relativePath', 'mimeType', 'sizeBytes',
+          'sha256', 'storageLocation', 'legacyCloudinaryPublicId', 'updatedAt'
+        ]) &&
+        isValidId(data.fileId) && data.fileId == fileId &&
+        isValidShortId(data.projectId) && data.projectId == projectId &&
+        isValidShortId(data.ownerId) && data.ownerId == userId &&
+        data.relativePath is string && data.relativePath.size() > 0 && data.relativePath.size() <= 512 &&
+        !data.relativePath.matches('.*\\.\\..*') &&
+        (!('mimeType' in data) || (data.mimeType is string && data.mimeType.size() <= 128)) &&
+        data.sizeBytes is number && data.sizeBytes >= 0 &&
+        (!('sha256' in data) || (data.sha256 is string && data.sha256.size() <= 128)) &&
+        data.storageLocation == 'daytona_volume' &&
+        (!('legacyCloudinaryPublicId' in data) || (data.legacyCloudinaryPublicId is string && data.legacyCloudinaryPublicId.size() <= 512)) &&
+        isValidTimestampStr(data.updatedAt);
+    }
+
+    function isValidProjectVersion(data, userId, projectId, versionId) {
+      return data.keys().hasAll(['versionId', 'projectId', 'ownerId', 'fileCount', 'totalBytes', 'createdAt']) &&
+        data.keys().hasOnly(['versionId', 'projectId', 'ownerId', 'label', 'fileCount', 'totalBytes', 'manifestSha256', 'createdAt']) &&
+        isValidShortId(data.versionId) && data.versionId == versionId &&
+        isValidShortId(data.projectId) && data.projectId == projectId &&
+        isValidShortId(data.ownerId) && data.ownerId == userId &&
+        (!('label' in data) || (data.label is string && data.label.size() <= 128)) &&
+        data.fileCount is number && data.fileCount >= 0 &&
+        data.totalBytes is number && data.totalBytes >= 0 &&
+        (!('manifestSha256' in data) || (data.manifestSha256 is string && data.manifestSha256.size() <= 128)) &&
+        isValidTimestampStr(data.createdAt);
+    }
+
+    function isValidChat(data) {
+      return data.keys().hasAll(['id', 'userId', 'messages', 'timestamp']) &&
+        data.keys().hasOnly(['id', 'userId', 'urlId', 'description', 'provider', 'model', 'messages', 'timestamp']) &&
+        isValidShortId(data.id) &&
+        data.userId == request.auth.uid &&
+        data.messages is list && data.messages.size() <= 500 &&
+        isValidTimestampStr(data.timestamp) &&
+        (!('urlId' in data) || (data.urlId is string && data.urlId.size() <= 128)) &&
+        (!('description' in data) || (data.description is string && data.description.size() <= 256)) &&
+        (!('provider' in data) || (data.provider is string && data.provider.size() <= 64)) &&
+        (!('model' in data) || (data.model is string && data.model.size() <= 128));
+    }
+
+    function isValidFileAsset(data) {
+      return data.keys().hasAll(['id', 'userId', 'path', 'cloudinaryUrl', 'updatedAt']) &&
+        data.keys().hasOnly([
+          'id', 'userId', 'chatId', 'path', 'cloudinaryUrl', 'publicId',
+          'resourceType', 'bytes', 'migratedToDaytona', 'daytonaSubpath', 'updatedAt'
+        ]) &&
+        isValidId(data.id) &&
+        data.userId == request.auth.uid &&
+        data.path is string && data.path.size() > 0 && data.path.size() <= 512 &&
+        data.cloudinaryUrl is string && data.cloudinaryUrl.size() > 0 && data.cloudinaryUrl.size() <= 1024 &&
+        isValidTimestampStr(data.updatedAt) &&
+        (!('chatId' in data) || (data.chatId is string && data.chatId.size() <= 128)) &&
+        (!('publicId' in data) || (data.publicId is string && data.publicId.size() <= 512)) &&
+        (!('resourceType' in data) || (data.resourceType is string && data.resourceType.size() <= 32)) &&
+        (!('bytes' in data) || (data.bytes is number && data.bytes >= 0)) &&
+        (!('migratedToDaytona' in data) || data.migratedToDaytona is bool) &&
+        (!('daytonaSubpath' in data) || (data.daytonaSubpath is string && data.daytonaSubpath.size() <= 512));
+    }
+
+    function isValidMigrationJob(data, jobId) {
+      return data.keys().hasAll(['jobId', 'startedBy', 'status', 'totalDiscovered', 'completedCount', 'failedCount', 'updatedAt']) &&
+        data.keys().hasOnly([
+          'jobId', 'startedBy', 'status', 'totalDiscovered', 'completedCount',
+          'skippedCount', 'failedCount', 'lastCursor', 'startedAt', 'updatedAt'
+        ]) &&
+        isValidShortId(data.jobId) && data.jobId == jobId &&
+        data.startedBy is string && data.startedBy.size() <= 128 &&
+        data.status in ['idle', 'running', 'paused', 'completed', 'failed'] &&
+        data.totalDiscovered is number && data.totalDiscovered >= 0 &&
+        data.completedCount is number && data.completedCount >= 0 &&
+        (!('skippedCount' in data) || (data.skippedCount is number && data.skippedCount >= 0)) &&
+        data.failedCount is number && data.failedCount >= 0 &&
+        (!('lastCursor' in data) || (data.lastCursor is string && data.lastCursor.size() <= 512)) &&
+        (!('startedAt' in data) || isValidTimestampStr(data.startedAt)) &&
+        isValidTimestampStr(data.updatedAt);
+    }
+
+    function isValidMigrationItem(data, jobId, itemId) {
+      return data.keys().hasAll(['itemId', 'jobId', 'ownerId', 'projectId', 'cloudinaryPublicId', 'destinationSubpath', 'status', 'updatedAt']) &&
+        data.keys().hasOnly([
+          'itemId', 'jobId', 'ownerId', 'projectId', 'cloudinaryPublicId', 'cloudinaryUrl',
+          'destinationSubpath', 'status', 'bytes', 'sha256', 'attempts', 'errorMessage', 'updatedAt'
+        ]) &&
+        isValidId(data.itemId) && data.itemId == itemId &&
+        isValidShortId(data.jobId) && data.jobId == jobId &&
+        isValidShortId(data.ownerId) &&
+        isValidShortId(data.projectId) &&
+        data.cloudinaryPublicId is string && data.cloudinaryPublicId.size() <= 512 &&
+        (!('cloudinaryUrl' in data) || (data.cloudinaryUrl is string && data.cloudinaryUrl.size() <= 1024)) &&
+        data.destinationSubpath is string && data.destinationSubpath.size() <= 512 &&
+        data.status in ['pending', 'downloading', 'uploading', 'verifying', 'completed', 'failed', 'skipped'] &&
+        (!('bytes' in data) || (data.bytes is number && data.bytes >= 0)) &&
+        (!('sha256' in data) || (data.sha256 is string && data.sha256.size() <= 128)) &&
+        (!('attempts' in data) || (data.attempts is number && data.attempts >= 0)) &&
+        (!('errorMessage' in data) || (data.errorMessage is string && data.errorMessage.size() <= 1024)) &&
+        isValidTimestampStr(data.updatedAt);
+    }
+
+    // Trusted Admin collection (never client-writable)
+    match /admins/{uid} {
+      allow get: if isSignedIn() && isValidShortId(uid) && (request.auth.uid == uid || isAdmin());
+      allow list: if isAdmin();
+      allow create, update, delete: if false;
+    }
+
+    // User Profiles
+    match /users/{userId} {
+      allow get: if isValidShortId(userId) && (isOwner(userId) || isAdmin());
+      allow create: if isValidShortId(userId) && isOwner(userId) && isValidUser(incoming(), userId);
+      allow update: if isValidShortId(userId) && isValidUser(incoming(), userId) && (
+        isAdmin() ||
+        (
+          isOwner(userId) &&
+          incoming().uid == existing().uid &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['email', 'displayName', 'username', 'bio', 'photoURL', 'updatedAt'])
+        )
+      );
+      allow delete: if false;
+
+      // Projects owned by userId
+      match /projects/{projectId} {
+        allow get: if isValidShortId(userId) && isValidShortId(projectId) && (isOwner(userId) || isAdmin());
+        allow list: if isOwner(userId) || isAdmin();
+        allow create: if isValidShortId(userId) && isValidShortId(projectId) &&
+          (isOwner(userId) || isAdmin()) &&
+          isValidProject(incoming(), userId, projectId);
+        allow update: if isValidShortId(userId) && isValidShortId(projectId) &&
+          isValidProject(incoming(), userId, projectId) &&
+          incoming().projectId == existing().projectId &&
+          incoming().ownerId == existing().ownerId &&
+          incoming().volumeSubpath == existing().volumeSubpath &&
+          incoming().createdAt == existing().createdAt && (
+            isAdmin() ||
+            (
+              isOwner(userId) &&
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'name', 'volumeId', 'sandboxId', 'sandboxStatus', 'storageBackend',
+                'totalFiles', 'totalBytes', 'migrationStatus', 'lastActiveAt', 'lastStoppedAt', 'updatedAt'
+              ])
+            )
+          );
+        allow delete: if isValidShortId(userId) && isValidShortId(projectId) && (isOwner(userId) || isAdmin());
+
+        // Workspace Presence Sessions
+        match /sessions/{sessionId} {
+          allow get: if isValidShortId(userId) && isValidShortId(projectId) && isValidShortId(sessionId) &&
+            (isOwner(userId) || isAdmin());
+          allow list: if isOwner(userId) || isAdmin();
+          allow create: if isValidShortId(userId) && isValidShortId(projectId) && isValidShortId(sessionId) &&
+            (isOwner(userId) || isAdmin()) &&
+            isValidWorkspaceSession(incoming(), userId, projectId, sessionId) &&
+            exists(/databases/$(database)/documents/users/$(userId)/projects/$(projectId));
+          allow update: if isValidShortId(userId) && isValidShortId(projectId) && isValidShortId(sessionId) &&
+            isValidWorkspaceSession(incoming(), userId, projectId, sessionId) &&
+            incoming().sessionId == existing().sessionId &&
+            incoming().projectId == existing().projectId &&
+            incoming().ownerId == existing().ownerId &&
+            incoming().createdAt == existing().createdAt && (
+              isAdmin() ||
+              (
+                isOwner(userId) &&
+                existing().status != 'ended' &&
+                incoming().diff(existing()).affectedKeys().hasOnly(['sandboxId', 'status', 'lastHeartbeatAt', 'endedAt'])
+              )
+            );
+          allow delete: if isValidShortId(userId) && isValidShortId(projectId) && isValidShortId(sessionId) &&
+            (isOwner(userId) || isAdmin());
+        }
+
+        // Metadata-only project file index
+        match /files/{fileId} {
+          allow get: if isValidShortId(userId) && isValidShortId(projectId) && isValidId(fileId) &&
+            (isOwner(userId) || isAdmin());
+          allow list: if isOwner(userId) || isAdmin();
+          allow create: if isValidShortId(userId) && isValidShortId(projectId) && isValidId(fileId) &&
+            (isOwner(userId) || isAdmin()) &&
+            isValidProjectFileMeta(incoming(), userId, projectId, fileId) &&
+            exists(/databases/$(database)/documents/users/$(userId)/projects/$(projectId));
+          allow update: if isValidShortId(userId) && isValidShortId(projectId) && isValidId(fileId) &&
+            isValidProjectFileMeta(incoming(), userId, projectId, fileId) &&
+            incoming().fileId == existing().fileId &&
+            incoming().projectId == existing().projectId &&
+            incoming().ownerId == existing().ownerId && (
+              isAdmin() ||
+              (
+                isOwner(userId) &&
+                incoming().diff(existing()).affectedKeys().hasOnly([
+                  'relativePath', 'mimeType', 'sizeBytes', 'sha256', 'legacyCloudinaryPublicId', 'updatedAt'
+                ])
+              )
+            );
+          allow delete: if isValidShortId(userId) && isValidShortId(projectId) && isValidId(fileId) &&
+            (isOwner(userId) || isAdmin());
+        }
+
+        // Snapshot versions
+        match /versions/{versionId} {
+          allow get: if isValidShortId(userId) && isValidShortId(projectId) && isValidShortId(versionId) &&
+            (isOwner(userId) || isAdmin());
+          allow list: if isOwner(userId) || isAdmin();
+          allow create: if isValidShortId(userId) && isValidShortId(projectId) && isValidShortId(versionId) &&
+            (isOwner(userId) || isAdmin()) &&
+            isValidProjectVersion(incoming(), userId, projectId, versionId) &&
+            exists(/databases/$(database)/documents/users/$(userId)/projects/$(projectId));
+          allow update: if false;
+          allow delete: if isValidShortId(userId) && isValidShortId(projectId) && isValidShortId(versionId) &&
+            (isOwner(userId) || isAdmin());
+        }
+      }
+    }
+
+    // Persistent Chats
+    match /chats/{chatId} {
+      allow get: if isSignedIn() && isValidShortId(chatId) &&
+        (resource == null || existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidShortId(chatId) && isValidChat(incoming());
+      allow update: if isSignedIn() && isValidShortId(chatId) && isValidChat(incoming()) && (
+        isAdmin() ||
+        (
+          existing().userId == request.auth.uid &&
+          incoming().id == existing().id &&
+          incoming().userId == existing().userId &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'urlId', 'description', 'provider', 'model', 'messages', 'timestamp'
+          ])
+        )
+      );
+      allow delete: if isSignedIn() && isValidShortId(chatId) &&
+        (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    // Legacy FileAssets (Cloudinary index kept read-only/status-updatable during migration)
+    match /files/{fileId} {
+      allow get: if isSignedIn() && isValidId(fileId) &&
+        (resource == null || existing().userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() && isValidId(fileId) && isValidFileAsset(incoming());
+      allow update: if isSignedIn() && isValidId(fileId) && isValidFileAsset(incoming()) && (
+        isAdmin() ||
+        (
+          existing().userId == request.auth.uid &&
+          incoming().id == existing().id &&
+          incoming().userId == existing().userId &&
+          incoming().diff(existing()).affectedKeys().hasOnly([
+            'chatId', 'path', 'cloudinaryUrl', 'publicId', 'resourceType',
+            'bytes', 'migratedToDaytona', 'daytonaSubpath', 'updatedAt'
+          ])
+        )
+      );
+      allow delete: if isSignedIn() && isValidId(fileId) &&
+        (existing().userId == request.auth.uid || isAdmin());
+    }
+
+    // Admin-only Migration Jobs
+    match /migrations/{jobId} {
+      allow get, list: if isAdmin();
+      allow create: if isValidShortId(jobId) && isAdmin() && isValidMigrationJob(incoming(), jobId);
+      allow update: if isValidShortId(jobId) && isAdmin() && isValidMigrationJob(incoming(), jobId);
+      allow delete: if isValidShortId(jobId) && isAdmin();
+
+      match /items/{itemId} {
+        allow get, list: if isAdmin();
+        allow create: if isValidShortId(jobId) && isValidId(itemId) && isAdmin() &&
+          isValidMigrationItem(incoming(), jobId, itemId) &&
+          exists(/databases/$(database)/documents/migrations/$(jobId));
+        allow update: if isValidShortId(jobId) && isValidId(itemId) && isAdmin() &&
+          isValidMigrationItem(incoming(), jobId, itemId) &&
+          incoming().itemId == existing().itemId &&
+          incoming().jobId == existing().jobId;
+        allow delete: if isValidShortId(jobId) && isValidId(itemId) && isAdmin();
+      }
+    }
+  }
+}

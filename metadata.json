@@ -1,0 +1,6 @@
+{
+  "name": "Bolt",
+  "description": "StackBlitz AI Agent — interactive AI-powered full-stack web development environment in the browser",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

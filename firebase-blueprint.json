@@ -1,0 +1,239 @@
+{
+  "entities": {
+    "AdminUser": {
+      "title": "AdminUser",
+      "description": "Explicit administrator marker document",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_-]+$" },
+        "email": { "type": "string", "maxLength": 256 },
+        "grantedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["uid", "email", "grantedAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Authenticated user profile stored in Firestore",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "email": { "type": "string", "maxLength": 256 },
+        "displayName": { "type": "string", "maxLength": 128 },
+        "username": { "type": "string", "maxLength": 64, "pattern": "^[a-zA-Z0-9._-]+$" },
+        "bio": { "type": "string", "maxLength": 500 },
+        "photoURL": { "type": "string", "maxLength": 1024 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["uid", "email", "createdAt"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Persistent project metadata referencing a dedicated Daytona Volume subpath and Sandbox",
+      "type": "object",
+      "properties": {
+        "projectId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_-]+$" },
+        "ownerId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_-]+$" },
+        "name": { "type": "string", "maxLength": 200 },
+        "volumeName": { "type": "string", "maxLength": 128 },
+        "volumeId": { "type": "string", "maxLength": 128 },
+        "volumeSubpath": { "type": "string", "maxLength": 256 },
+        "sandboxId": { "type": "string", "maxLength": 128 },
+        "sandboxStatus": {
+          "type": "string",
+          "enum": ["none", "creating", "started", "stopped", "stopping", "error"]
+        },
+        "storageBackend": {
+          "type": "string",
+          "enum": ["daytona_volume", "migrating"]
+        },
+        "totalFiles": { "type": "number" },
+        "totalBytes": { "type": "number" },
+        "migrationStatus": {
+          "type": "string",
+          "enum": ["not_started", "in_progress", "completed", "partial", "failed"]
+        },
+        "lastActiveAt": { "type": "string", "maxLength": 64 },
+        "lastStoppedAt": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["projectId", "ownerId", "name", "volumeName", "volumeSubpath", "storageBackend", "createdAt"]
+    },
+    "WorkspaceSession": {
+      "title": "WorkspaceSession",
+      "description": "Browser workspace tab presence record used for safe automatic Sandbox shutdown",
+      "type": "object",
+      "properties": {
+        "sessionId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_-]+$" },
+        "projectId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_-]+$" },
+        "ownerId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_-]+$" },
+        "sandboxId": { "type": "string", "maxLength": 128 },
+        "status": {
+          "type": "string",
+          "enum": ["active", "ended"]
+        },
+        "lastHeartbeatAt": { "type": "string", "maxLength": 64 },
+        "endedAt": { "type": "string", "maxLength": 64 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["sessionId", "projectId", "ownerId", "status", "lastHeartbeatAt", "createdAt"]
+    },
+    "ProjectFileMeta": {
+      "title": "ProjectFileMeta",
+      "description": "File metadata stored in Firestore without inline source code bodies (source lives in Daytona Volume)",
+      "type": "object",
+      "properties": {
+        "fileId": { "type": "string", "maxLength": 256, "pattern": "^[a-zA-Z0-9_-]+$" },
+        "projectId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_-]+$" },
+        "ownerId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_-]+$" },
+        "relativePath": { "type": "string", "maxLength": 512 },
+        "mimeType": { "type": "string", "maxLength": 128 },
+        "sizeBytes": { "type": "number" },
+        "sha256": { "type": "string", "maxLength": 128 },
+        "storageLocation": { "type": "string", "enum": ["daytona_volume"] },
+        "legacyCloudinaryPublicId": { "type": "string", "maxLength": 512 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["fileId", "projectId", "ownerId", "relativePath", "sizeBytes", "storageLocation", "updatedAt"]
+    },
+    "ProjectVersion": {
+      "title": "ProjectVersion",
+      "description": "Snapshot reference for workspace milestones stored in Daytona Volume",
+      "type": "object",
+      "properties": {
+        "versionId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_-]+$" },
+        "projectId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_-]+$" },
+        "ownerId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_-]+$" },
+        "label": { "type": "string", "maxLength": 128 },
+        "fileCount": { "type": "number" },
+        "totalBytes": { "type": "number" },
+        "manifestSha256": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["versionId", "projectId", "ownerId", "fileCount", "totalBytes", "createdAt"]
+    },
+    "Chat": {
+      "title": "Chat",
+      "description": "User AI conversation session and message history",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "urlId": { "type": "string", "maxLength": 128 },
+        "description": { "type": "string", "maxLength": 256 },
+        "provider": { "type": "string", "maxLength": 64 },
+        "model": { "type": "string", "maxLength": 128 },
+        "messages": { "type": "array" },
+        "timestamp": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "messages", "timestamp"]
+    },
+    "FileAsset": {
+      "title": "FileAsset",
+      "description": "Legacy Cloudinary file index record read-only during migration",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 256 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "chatId": { "type": "string", "maxLength": 128 },
+        "path": { "type": "string", "maxLength": 512 },
+        "cloudinaryUrl": { "type": "string", "maxLength": 1024 },
+        "publicId": { "type": "string", "maxLength": 512 },
+        "resourceType": { "type": "string", "maxLength": 32 },
+        "bytes": { "type": "number" },
+        "migratedToDaytona": { "type": "boolean" },
+        "daytonaSubpath": { "type": "string", "maxLength": 512 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "userId", "path", "cloudinaryUrl", "updatedAt"]
+    },
+    "CloudinaryMigrationJob": {
+      "title": "CloudinaryMigrationJob",
+      "description": "Resumable batch job tracking Cloudinary to Daytona Volume migration",
+      "type": "object",
+      "properties": {
+        "jobId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_-]+$" },
+        "startedBy": { "type": "string", "maxLength": 128 },
+        "status": {
+          "type": "string",
+          "enum": ["idle", "running", "paused", "completed", "failed"]
+        },
+        "totalDiscovered": { "type": "number" },
+        "completedCount": { "type": "number" },
+        "skippedCount": { "type": "number" },
+        "failedCount": { "type": "number" },
+        "lastCursor": { "type": "string", "maxLength": 512 },
+        "startedAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["jobId", "startedBy", "status", "totalDiscovered", "completedCount", "failedCount", "updatedAt"]
+    },
+    "CloudinaryMigrationItem": {
+      "title": "CloudinaryMigrationItem",
+      "description": "Per-asset migration tracking state for idempotency and checksum verification",
+      "type": "object",
+      "properties": {
+        "itemId": { "type": "string", "maxLength": 256, "pattern": "^[a-zA-Z0-9_-]+$" },
+        "jobId": { "type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9_-]+$" },
+        "ownerId": { "type": "string", "maxLength": 128 },
+        "projectId": { "type": "string", "maxLength": 128 },
+        "cloudinaryPublicId": { "type": "string", "maxLength": 512 },
+        "cloudinaryUrl": { "type": "string", "maxLength": 1024 },
+        "destinationSubpath": { "type": "string", "maxLength": 512 },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "downloading", "uploading", "verifying", "completed", "failed", "skipped"]
+        },
+        "bytes": { "type": "number" },
+        "sha256": { "type": "string", "maxLength": 128 },
+        "attempts": { "type": "number" },
+        "errorMessage": { "type": "string", "maxLength": 1024 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["itemId", "jobId", "ownerId", "projectId", "cloudinaryPublicId", "destinationSubpath", "status", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "admins/{uid}": {
+      "schema": { "$ref": "#/entities/AdminUser" },
+      "description": "Trusted administrator records"
+    },
+    "users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Private user profile documents owned by each authenticated user"
+    },
+    "users/{userId}/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/Project" },
+      "description": "Project metadata and Daytona Volume/Sandbox mapping owned by userId"
+    },
+    "users/{userId}/projects/{projectId}/sessions/{sessionId}": {
+      "schema": { "$ref": "#/entities/WorkspaceSession" },
+      "description": "Active workspace tab heartbeats for automatic Sandbox shutdown"
+    },
+    "users/{userId}/projects/{projectId}/files/{fileId}": {
+      "schema": { "$ref": "#/entities/ProjectFileMeta" },
+      "description": "File metadata index stored in Firestore (file contents live exclusively in Daytona Volumes)"
+    },
+    "users/{userId}/projects/{projectId}/versions/{versionId}": {
+      "schema": { "$ref": "#/entities/ProjectVersion" },
+      "description": "Project snapshot manifests"
+    },
+    "chats/{chatId}": {
+      "schema": { "$ref": "#/entities/Chat" },
+      "description": "Persistent AI chat conversations owned by authenticated users"
+    },
+    "files/{fileId}": {
+      "schema": { "$ref": "#/entities/FileAsset" },
+      "description": "Legacy Cloudinary file metadata read-only for migration and historical fallback"
+    },
+    "migrations/{jobId}": {
+      "schema": { "$ref": "#/entities/CloudinaryMigrationJob" },
+      "description": "Admin-managed Cloudinary to Daytona Volume migration job headers"
+    },
+    "migrations/{jobId}/items/{itemId}": {
+      "schema": { "$ref": "#/entities/CloudinaryMigrationItem" },
+      "description": "Per-asset migration verification logs"
+    }
+  }
+}

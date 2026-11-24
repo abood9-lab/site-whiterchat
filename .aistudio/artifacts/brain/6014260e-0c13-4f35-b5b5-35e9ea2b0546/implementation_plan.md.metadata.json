@@ -1,0 +1,6 @@
+{
+  "summary":  "Implementation plan to replace popup modals with prompt-docked Secrets and step-by-step Questions trays above the AI box, plus unified Code/Preview/Plan/Secrets tabs inside the Workbench.",
+  "updatedAt":  "2026-11-23T13:55:04.896716440Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}
